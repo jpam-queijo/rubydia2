@@ -14,6 +14,8 @@ export class BedrockModGenerator extends BaseModGenerator {
 
         ////// Generating Resource Pack(RP)
         this.generateResourcePack(mod, uuids, process.env.DEFAULT_GENERATE_PATH || path);
+
+        ////// Generating Behavior Pack(BP)
         this.generateBehaviorPack(mod, uuids, process.env.DEFAULT_GENERATE_PATH || path);
 
         console.log("[rubydia2] Done generating Bedrock mod.");
