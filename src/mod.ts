@@ -1,6 +1,8 @@
+export type Version = [number, number, number];
+
 export interface ModInfo {
     name: string;
-    version: number[];
+    version: Version;
     description?: string;
 }
 
