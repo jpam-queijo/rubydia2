@@ -9,16 +9,19 @@ import os from "os";
 import open from "open";
 
 export class BedrockModGenerator extends BaseModGenerator {
-    public static override generate(mod: Mod, path?: string): void {
+    public static override generate(mod: Mod, output_path?: string): void {
         console.log("[rubydia2] Generating Bedrock mod...");
 
         const uuids = this.generateOrGetUUIDs();
 
+        let generate_path: string = process.env.DEFAULT_GENERATE_PATH || output_path || "./build/";
+        let rp_path: string = path.join(generate_path, 'resource_packs');
+        let bp_path: string = path.join(generate_path, 'behavior_packs');
         ////// Generating Resource Pack(RP)
-        this.generateResourcePack(mod, uuids, process.env.DEFAULT_GENERATE_PATH || path);
+        this.generateResourcePack(mod, uuids, rp_path);
 
         ////// Generating Behavior Pack(BP)
-        this.generateBehaviorPack(mod, uuids, process.env.DEFAULT_GENERATE_PATH || path);
+        this.generateBehaviorPack(mod, uuids, bp_path);
 
         console.log("[rubydia2] Done generating Bedrock mod.");
     }
