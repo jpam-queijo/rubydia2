@@ -1,0 +1,51 @@
+plugins {
+        id 'fabric-loom' version '1.9-SNAPSHOT'
+        id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:\${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:\${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:\${project.loader_version}"
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = ${RUBYDIA2_JAVA_VERSION}
+}
+
+java {
+    withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_${RUBYDIA2_JAVA_VERSION}
+	targetCompatibility = JavaVersion.VERSION_${RUBYDIA2_JAVA_VERSION}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			artifactId = project.archives_base_name
+			from components.java
+		}
+	}
+    repositories {
+
+    }
+}
