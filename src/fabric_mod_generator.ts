@@ -42,10 +42,21 @@ export class FabricModGenerator extends BaseModGenerator {
             fabric_version: settingsByVersion[version].fabric_version,
             java_version: settingsByVersion[version].java_version
         };
-        const generate_path: string = `./build/fabric/${version}/`;
+        const generate_path: string = process.env.DEFAULT_GENERATE_PATH || `./build/fabric/${version}/`;
 
         fs.ensureDirSync(generate_path);
         this.generateGradleFiles(generate_path, mod.modInfo, mod_fabric_settings);
+
+        // Main file structure
+        let java_src_folder: string = path.join(generate_path, "src", "main", "java");
+    
+        let java_package: string = path.join(java_src_folder, "com", "rubydia2", 
+            toSnakeCaseString(process.env.JAVA_MODID||mod.modInfo.name));
+
+        if (process.env.JAVA_PACKAGE) {
+            java_package = path.join(java_src_folder, process.env.JAVA_PACKAGE.replaceAll(".", path.sep));
+        }
+        fs.ensureDirSync(path.join(java_package, "mixin"));
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -55,6 +66,8 @@ export class FabricModGenerator extends BaseModGenerator {
         mod_info: ModInfo, settings?: FabricModSettings): void {
         ///////////////////// GRADLE FILES GENERATION ///////////////////////////
         console.log("[rubydia2] Generating gradle files...");
+
+        const gradleFilesFolder: string = path.join(import.meta.dirname, "..", "gradle_files");
         
         if (!settings) {
             settings = {
@@ -66,13 +79,25 @@ export class FabricModGenerator extends BaseModGenerator {
         }
 
         // settings.gradle
-        fs.copyFileSync(path.join(import.meta.dirname, "..", "gradle_files", "settings.gradle"),
+        fs.copyFileSync(path.join(gradleFilesFolder, "settings.gradle"),
         path.join(output_path, "settings.gradle"));
 
+        // gradle.properties and build.gradle
         const gradleProperties = this.gradlePropertiesGenerator(settings, mod_info);
         const gradleBuild = this.gradleBuildGenerator(settings);
         fs.writeFileSync(path.join(output_path, "gradle.properties"), gradleProperties);
         fs.writeFileSync(path.join(output_path, "build.gradle"), gradleBuild);
+
+        // gradlew
+        fs.copyFileSync(path.join(gradleFilesFolder, "gradlew"),
+        path.join(output_path, "gradlew"));
+
+        // gradlew.bat
+        fs.copyFileSync(path.join(gradleFilesFolder, "gradlew.bat"),
+        path.join(output_path, "gradlew.bat"));
+
+        // gradle folder
+        fs.copySync(path.join(gradleFilesFolder, "gradle"), path.join(output_path, "gradle"));
 
         console.log("[rubydia2] Done generating gradle files.");
     }
