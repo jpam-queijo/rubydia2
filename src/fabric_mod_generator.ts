@@ -42,7 +42,6 @@ export class FabricModGenerator extends BaseModGenerator {
 
     public static generateGradleFiles(output_path: string,
         mod_info: ModInfo, settings?: FabricModSettings): void {
-        const mod_id: string = toSnakeCaseString(mod_info.name);
         
         if (!settings) {
             settings = {
@@ -54,25 +53,31 @@ export class FabricModGenerator extends BaseModGenerator {
 
         // settings.gradle
         fs.copyFileSync(path.join(import.meta.dirname, "..", "gradle_files", "settings.gradle"),
-         path.join(output_path, "settings.gradle")
-        );
+        path.join(output_path, "settings.gradle"));
 
+        const gradleProperties = this.gradlePropertiesGenerator(settings, mod_info);
+
+        fs.writeFileSync(path.join(output_path, "gradle.properties"), gradleProperties);
+    }
+
+    public static gradlePropertiesGenerator(settings: FabricModSettings, mod_info: ModInfo): string {
         // gradle.properties
+        const mod_id: string = toSnakeCaseString(mod_info.name);
+
         const gradleProperties: string = `
 org.gradle.jvmargs=-Xmx1G
 org.gradle.parallel=true
 
-minecraft_version=${latestJavaVersion}
-yarn_mappings=${latestYarnVersion}
-loader_version=${latestFabricVersion}
+minecraft_version=${settings.version}
+yarn_mappings=${settings.yarn_version}
+loader_version=${settings.loader_version}
 
 mod_version=${mod_info.version.join(".") || "1.0.0"}
 
-maven_group=com.rubydia2.${(mod_id)}
-archives_base_name=${mod_id}
+maven_group=${process.env.JAVA_PACKAGE || "com.rubydia2." + (process.env.JAVA_MODID || mod_id)}
+archives_base_name=${process.env.JAVA_MODID || mod_id}
 `;
 
-        fs.writeFileSync(path.join(output_path, "gradle.properties"), gradleProperties);
-
+        return gradleProperties;
     }
 }
