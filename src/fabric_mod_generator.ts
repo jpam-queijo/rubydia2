@@ -1,8 +1,9 @@
 import type { Mod, ModInfo, Version } from "./mod";
 import { BaseModGenerator } from "./mod_generator";
-import { toSnakeCaseString } from "./utils";
+import { toCamelCaseString, toSnakeCaseString, capitalizeFirstLetter } from "./utils";
 import fs from "fs-extra";
 import path from "path";
+import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./fabric_mod";
 
 export type FabricSupportedJavaVersion = "1.21.4";
 export const latestMcJavaVersion: FabricSupportedJavaVersion = "1.21.4";
@@ -48,7 +49,7 @@ export class FabricModGenerator extends BaseModGenerator {
         this.generateGradleFiles(generate_path, mod.modInfo, mod_fabric_settings);
 
         // Main file structure
-        let java_src_folder: string = path.join(generate_path, "src", "main", "java");
+        const java_src_folder: string = path.join(generate_path, "src", "main", "java");
     
         let java_package: string = path.join(java_src_folder, "com", "rubydia2", 
             toSnakeCaseString(process.env.JAVA_MODID||mod.modInfo.name));
@@ -57,6 +58,9 @@ export class FabricModGenerator extends BaseModGenerator {
             java_package = path.join(java_src_folder, process.env.JAVA_PACKAGE.replaceAll(".", path.sep));
         }
         fs.ensureDirSync(path.join(java_package, "mixin"));
+        fs.ensureDirSync(path.join(generate_path, "src", "main", "resources"));
+
+        this.generateModFabricFiles(mod.modInfo, generate_path);
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -131,9 +135,46 @@ fabric_version=${settings.fabric_version}
     public static gradleBuildGenerator(settings: FabricModSettings): string {
         ///////////////////// GRADLE BUILD GENERATION ///////////////////////////
         // build.gradle
-        let gradleBuild = fs.readFileSync(
+        const gradleBuild = fs.readFileSync(
             path.join(import.meta.dirname, "..", "gradle_files", "build.gradle"), "utf-8");
 
         return gradleBuild.replaceAll("${RUBYDIA2_JAVA_VERSION}", settings.java_version);
+    }
+
+    public static generateModFabricFiles(mod_info: ModInfo, output_path: string) {
+        console.log("[rubydia2] Generating Fabric Files...");
+        
+        const json_path: string = path.join(output_path, "src", "main", "resources", "fabric.mod.json");
+
+        fs.writeJSONSync(json_path, this.generateFabricModMetadataJSON(mod_info));
+
+        console.log("[rubydia2] Done generating Fabric files.");
+    }
+
+    public static generateFabricModMetadataJSON(mod_info: ModInfo) {
+        const fabric_mod_info: FabricModInfo = {
+            schemaVersion: 1,
+            id: this.getModID(mod_info),
+            version: "${version}"
+        };
+
+        const fabric_mod_metadata: FabricModMetadata = {
+            name: mod_info.name,
+            description: mod_info.description,
+        }
+
+        const fabric_mod_loading_info: FabricModLoadingInfo = {
+            environment: "*",
+            entrypoints: {
+                main: [ process.env.JAVA_PACKAGE || 
+                    `com.rubydia2.${this.getModID(mod_info)}.${capitalizeFirstLetter(toCamelCaseString(mod_info.name))}`]
+            },
+            mixins: [`${this.getModID(mod_info)}.mixins.json`]
+        }
+        
+        return {...fabric_mod_info, ...fabric_mod_metadata, ...fabric_mod_loading_info};
+    }
+    public static getModID(mod_info: ModInfo): string {
+        return process.env.JAVA_MODID || toSnakeCaseString(mod_info.name);
     }
 }
