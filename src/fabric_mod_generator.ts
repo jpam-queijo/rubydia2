@@ -169,7 +169,7 @@ fabric_version=${settings.fabric_version}
                 main: [ process.env.JAVA_PACKAGE || 
                     `com.rubydia2.${this.getModID(mod_info)}.${capitalizeFirstLetter(toCamelCaseString(mod_info.name))}`]
             },
-            mixins: [`${this.getModID(mod_info)}.mixins.json`]
+            // no mixins for now
         }
         
         return {...fabric_mod_info, ...fabric_mod_metadata, ...fabric_mod_loading_info};
