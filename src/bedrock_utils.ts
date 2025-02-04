@@ -20,7 +20,12 @@ export function modInfoToManifest(modInfo: ModInfo, [headerUuid, moduleUuid]: [s
                 uuid: moduleUuid,
                 version: modInfo.version
             }
-        ]
+        ],
+        metadata: {
+            authors: modInfo.authors,
+            license: modInfo.license,
+            url: modInfo.homepage
+        }
     }
 }
 

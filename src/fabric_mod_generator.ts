@@ -24,6 +24,7 @@ export class FabricModGenerator extends BaseModGenerator {
 
         fs.ensureDirSync(generate_path);
         this.generateGradleFiles(generate_path, mod.modInfo, mod_fabric_settings);
+        this.generateModFabricFiles(mod.modInfo, generate_path);
 
         // Main file structure
         const java_src_folder: string = this.getJavaSrcFolder(generate_path);
@@ -233,7 +234,12 @@ fabric_version=${settings.fabric_version}
         const fabric_mod_metadata: FabricModMetadata = {
             name: mod_info.name,
             description: mod_info.description,
-            icon: `assets/${this.getModID(mod_info)}/icon.png`
+            icon: `assets/${this.getModID(mod_info)}/icon.png`,
+            authors: mod_info.authors,
+            contact: {
+                homepage: mod_info.homepage
+            },
+            license: mod_info.license
         }
 
         const fabric_mod_loading_info: FabricModLoadingInfo = {

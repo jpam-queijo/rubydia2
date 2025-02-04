@@ -5,6 +5,9 @@ export interface ModInfo {
     version: Version;
     description?: string;
     icon?: string;
+    authors?: string[];
+    homepage?: string;
+    license?: string;
 }
 
 export abstract class Mod {
