@@ -79,6 +79,8 @@ export class FabricModGenerator extends BaseModGenerator {
         if (!version) {
             version = latestMcJavaVersion;
         }
+
+        console.log("[rubydia2] Launching Fabric mod...");
         shell.cd(path.join(shell.pwd(), this.getModGeneratePath(version, output_path)));
         if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
             throw new Error("[rubydia2] Gradlew not found.");
@@ -104,6 +106,8 @@ export class FabricModGenerator extends BaseModGenerator {
     }
 
     public static buildGeneratedMod(mod_path: string) {
+        console.log("[rubydia2] Building generated mod...");
+
         shell.cd(path.join(shell.pwd(), mod_path));
         if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
             throw new Error("[rubydia2] Gradlew not found.");
@@ -113,6 +117,8 @@ export class FabricModGenerator extends BaseModGenerator {
         } else {
             shell.exec(`./gradlew build`);
         }
+
+        console.log("[rubydia2] Done building generated mod.");
     }
 
 
