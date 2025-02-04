@@ -7,6 +7,7 @@ import fs from "fs-extra";
 import path from "path";
 import os from "os";
 import open from "open";
+import archiver from "archiver";
 
 export class BedrockModGenerator extends BaseModGenerator {
     public static override generate(mod: Mod, output_path?: string): void {
@@ -73,8 +74,30 @@ export class BedrockModGenerator extends BaseModGenerator {
         }
     }
 
-    public static generateMcAddon(mod: Mod, path?: string): void {
-        // TODO
+    public static generateAndCreateMcAddon(mod: Mod, output_path?: string, generate_path?: string): void {
+        this.generate(mod, generate_path);
+
+        console.log("[rubydia2] Creating .mcaddon file...");
+        fs.ensureDirSync(output_path || "./dist/");
+        const output_stream = fs.createWriteStream(path.join(output_path || "./dist/", `${mod.modInfo.name}.mcaddon`));
+        
+        const archive = archiver('zip');
+        archive.on('warning', (err) => {
+            console.warn(`[rubydia2] While creating .mcaddon file: ${err}`)
+        });
+        archive.on('error', (err) => {
+            throw new Error(`[rubydia2] While creating .mcaddon file: ${err}`);
+        });
+        
+        archive.pipe(output_stream);
+        
+        const rp_path = path.join(generate_path || "./build/", 'resource_packs');
+        const bp_path = path.join(generate_path || "./build/", 'behavior_packs');
+        
+        archive.directory(rp_path, `${mod.modInfo.name} [RP]`);
+        archive.directory(bp_path,  `${mod.modInfo.name} [BP]`);
+
+        console.log("[rubydia2] Done Creating .mcaddon file.");
     }
 
     public static generateResourcePack(mod: Mod, uuids: BedrockUUIDs, generate_path?: string): void {

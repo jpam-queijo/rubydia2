@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/fs-extra": "^11.0.4",
     "@types/shelljs": "^0.8.15",
     "archiver": "^7.0.1",
