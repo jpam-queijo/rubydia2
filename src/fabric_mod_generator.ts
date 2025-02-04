@@ -6,70 +6,54 @@ import path from "path";
 import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./fabric_mod";
 import * as shell from "shelljs";
 import os from "os";
-
-export type FabricSupportedJavaVersion = "1.21.4";
-export const latestMcJavaVersion: FabricSupportedJavaVersion = "1.21.4";
-export const latestYarnVersion: string = "1.21.4+build.8";
-export const latestFabricVersion: string = "0.115.1+1.21.4";
-export const latestLoaderVersion: string = "0.16.10";
-export const latestJavaVersion: string = "21";
-
-export const settingsByVersion = {
-    "1.21.4": {
-        yarn_version: "1.21.4+build.8",
-        fabric_version: "0.115.1+1.21.4",
-        java_version: "21"
-    }
-}
-
-export interface FabricModSettings {
-    version: FabricSupportedJavaVersion
-    yarn_version: string,
-    fabric_version: string,
-    java_version: string
-}
+import { latestLoaderVersion, settingsByVersion, type FabricModSettings, type FabricSupportedJavaVersion } from "./fabric_mod_settings";
 
 export class FabricModGenerator extends BaseModGenerator {
     public static override generate(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
         ///////////////////// FABRIC MOD GENERATION ///////////////////////////
         console.log("[rubydia2] Generating Fabric mod...");
 
+        const mod_id = this.getModID(mod.modInfo);
 
         if (!version) {
-            version = latestMcJavaVersion;
+            version = settingsByVersion.latest.version;
         }
 
-        const mod_fabric_settings: FabricModSettings = {
-            version: version,
-            yarn_version: settingsByVersion[version].yarn_version,
-            fabric_version: settingsByVersion[version].fabric_version,
-            java_version: settingsByVersion[version].java_version
-        };
+        const mod_fabric_settings: FabricModSettings = settingsByVersion.latest;
         const generate_path: string = this.getModGeneratePath(version, output_path);
 
         fs.ensureDirSync(generate_path);
         this.generateGradleFiles(generate_path, mod.modInfo, mod_fabric_settings);
 
         // Main file structure
-        const java_src_folder: string = path.join(generate_path, "src", "main", "java");
-    
-        let java_package: string = path.join(java_src_folder, "com", "rubydia2", 
-            toSnakeCaseString(process.env.JAVA_MODID||mod.modInfo.name));
+        const java_src_folder: string = this.getJavaSrcFolder(generate_path);
+        const assetsFolder = this.getAssetsFolderLocation(generate_path, mod_id);
+        const java_package = path.join(java_src_folder, this.getModPackage(mod.modInfo).replaceAll(".", path.sep));
 
-        if (process.env.JAVA_PACKAGE) {
-            java_package = path.join(java_src_folder, process.env.JAVA_PACKAGE.replaceAll(".", path.sep));
-        }
-        fs.ensureDirSync(path.join(java_package, "mixin"));
-        fs.ensureDirSync(path.join(generate_path, "src", "main", "resources"));
-
-        this.generateModFabricFiles(mod.modInfo, generate_path);
-
+        this.createModFileStructure(generate_path, mod_id);
         // Mod Java File
+
         let mod_java_file: string = fs.readFileSync(
             path.join(import.meta.dirname, "..", "java_files", "fabric",  "Mod.java"), "utf-8");
 
         mod_java_file = this.parseJavaFile(mod_java_file, mod.modInfo);
         fs.writeFileSync(path.join(java_package, `${capitalizeFirstLetter(toCamelCaseString(mod.modInfo.name))}.java`), mod_java_file);
+
+        // Mod Icon
+        const rubydia2_icon = path.join(import.meta.dirname, "..", "assets", "default_icon.png");
+        if (!fs.existsSync(rubydia2_icon)) {
+            throw new Error("[rubydia2] Missing asset \"default_icon.png\".");
+        }
+
+        if (mod.modInfo.icon && fs.existsSync(mod.modInfo.icon)) {
+            fs.copyFileSync(mod.modInfo.icon, path.join(assetsFolder, "icon.png"));
+        } else {
+            console.warn("[rubydia2] Icon Specified not found. Using rubydia2 icon.")
+            fs.copyFileSync(rubydia2_icon, path.join(assetsFolder, "icon.png"));
+        }
+
+        fs.copyFileSync(rubydia2_icon, path.join(assetsFolder, "rubydia2_icon.png"));
+
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -77,7 +61,7 @@ export class FabricModGenerator extends BaseModGenerator {
     public static override generateAndLaunch(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
         this.generate(mod, version, output_path);
         if (!version) {
-            version = latestMcJavaVersion;
+            version = settingsByVersion.latest.version;
         }
 
         console.log("[rubydia2] Launching Fabric mod...");
@@ -100,12 +84,12 @@ export class FabricModGenerator extends BaseModGenerator {
     public static generateAndBuild(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
         this.generate(mod, version, output_path);
         if (!version) {
-            version = latestMcJavaVersion;
+            version = settingsByVersion.latest.version;
         }
         this.buildGeneratedMod(this.getModGeneratePath(version, output_path));
     }
 
-    public static buildGeneratedMod(mod_path: string) {
+    public static buildGeneratedMod(mod_path: string): void {
         console.log("[rubydia2] Building generated mod...");
 
         shell.cd(path.join(shell.pwd(), mod_path));
@@ -121,6 +105,21 @@ export class FabricModGenerator extends BaseModGenerator {
         console.log("[rubydia2] Done building generated mod.");
     }
 
+    public static createModFileStructure(output_path: string, mod_id: string): void {
+        console.log("[rubydia2] Generating Mod File Structure...");
+        const java_src_folder: string = path.join(output_path, "src", "main", "java");
+        const assetsFolder = this.getAssetsFolderLocation(output_path, mod_id);
+        
+        let java_package: string = path.join(java_src_folder, "com", "rubydia2", mod_id);
+        
+        if (process.env.JAVA_PACKAGE) {
+            java_package = path.join(java_src_folder, process.env.JAVA_PACKAGE.replaceAll(".", path.sep));
+        }
+        fs.ensureDirSync(path.join(java_package, "mixin"));
+        fs.ensureDirSync(assetsFolder);
+        console.log("[rubydia2] Done Generating Mod File Structure...");
+    }
+
 
     public static generateGradleFiles(output_path: string,
         mod_info: ModInfo, settings?: FabricModSettings): void {
@@ -130,12 +129,7 @@ export class FabricModGenerator extends BaseModGenerator {
         const gradleFilesFolder: string = path.join(import.meta.dirname, "..", "gradle_files");
         
         if (!settings) {
-            settings = {
-                version: latestMcJavaVersion,
-                yarn_version: latestYarnVersion,
-                fabric_version: latestFabricVersion,
-                java_version: latestJavaVersion
-            }
+            settings = settingsByVersion.latest;
         }
 
         // settings.gradle
@@ -239,6 +233,7 @@ fabric_version=${settings.fabric_version}
         const fabric_mod_metadata: FabricModMetadata = {
             name: mod_info.name,
             description: mod_info.description,
+            icon: `assets/${this.getModID(mod_info)}/icon.png`
         }
 
         const fabric_mod_loading_info: FabricModLoadingInfo = {
@@ -269,5 +264,13 @@ fabric_version=${settings.fabric_version}
 
     public static getModGeneratePath(version: FabricSupportedJavaVersion, specified_path?: string): string {
         return process.env.DEFAULT_GENERATE_PATH || specified_path || `./build/fabric/${version}/`
+    }
+
+    public static getAssetsFolderLocation(generate_path: string, mod_id: string): string {
+        return path.join(generate_path, "src", "main", "resources", "assets", mod_id);
+    }
+
+    public static getJavaSrcFolder(generate_path: string) {
+        return path.join(generate_path, "src", "main", "java");
     }
 }
