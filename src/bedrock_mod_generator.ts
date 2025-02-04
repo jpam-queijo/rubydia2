@@ -7,6 +7,7 @@ import fs from "fs-extra";
 import path from "path";
 import os from "os";
 import open from "open";
+import archiver from "archiver";
 
 export class BedrockModGenerator extends BaseModGenerator {
     public static override generate(mod: Mod, output_path?: string): void {
@@ -14,9 +15,9 @@ export class BedrockModGenerator extends BaseModGenerator {
 
         const uuids = this.generateOrGetUUIDs();
 
-        let generate_path: string = process.env.DEFAULT_GENERATE_PATH || output_path || "./build/";
-        let rp_path: string = path.join(generate_path, 'resource_packs');
-        let bp_path: string = path.join(generate_path, 'behavior_packs');
+        const generate_path: string = output_path || process.env.DEFAULT_GENERATE_PATH || "./build/";
+        const rp_path: string = path.join(generate_path, 'resource_packs');
+        const bp_path: string = path.join(generate_path, 'behavior_packs');
         ////// Generating Resource Pack(RP)
         this.generateResourcePack(mod, uuids, rp_path);
 
@@ -30,7 +31,6 @@ export class BedrockModGenerator extends BaseModGenerator {
     }
 
     public static generateResourcePackFromMod(mod: Mod, path: string): void {
-        console.log("[rubydia2] Generating resource pack...");
         if (!path) {
             path = "./build/resource_packs";
         }
@@ -38,11 +38,10 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(path);
 
         this.generateResourcePack(mod, this.generateOrGetUUIDs(), path);
-        console.log("[rubydia2] Done generating resource pack.");
+        
     }
 
     public static generateBehaviorPackFromMod(mod: Mod, path: string): void {
-        console.log("[rubydia2] Generating behavior pack...");
         if (!path) {
             path = "./build/behavior_packs";
         }
@@ -50,20 +49,19 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(path);
 
         this.generateBehaviorPack(mod, this.generateOrGetUUIDs(), path);
-        console.log("[rubydia2] Done generating behavior pack.");
     }
 
     public static override generateAndLaunch(mod: Mod): void {
         if (os.platform() === 'win32' && process.env.LOCALAPPDATA) {
 
             // Getting Minecraft Bedrock Path on windows
-            let generate_path = path.join(process.env.LOCALAPPDATA,
+            const generate_path = path.join(process.env.LOCALAPPDATA,
                  "Packages", "Microsoft.MinecraftUWP_8wekyb3d8bbwe",
                   "LocalState", "games", "com.mojang");
 
             // Generating mods
-            let rp_path = path.join(generate_path, "development_resource_packs", mod.modInfo.name);
-            let bp_path = path.join(generate_path, "development_behavior_packs", mod.modInfo.name);
+            const rp_path = path.join(generate_path, "development_resource_packs", mod.modInfo.name);
+            const bp_path = path.join(generate_path, "development_behavior_packs", mod.modInfo.name);
 
             this.generateResourcePackFromMod(mod, rp_path);
             this.generateBehaviorPackFromMod(mod, bp_path);
@@ -76,8 +74,30 @@ export class BedrockModGenerator extends BaseModGenerator {
         }
     }
 
-    public static generateMcAddon(mod: Mod, path?: string): void {
-        // TODO
+    public static generateAndCreateMcAddon(mod: Mod, output_path?: string, generate_path?: string): void {
+        this.generate(mod, generate_path);
+
+        console.log("[rubydia2] Creating .mcaddon file...");
+        fs.ensureDirSync(output_path || "./dist/");
+        const output_stream = fs.createWriteStream(path.join(output_path || "./dist/", `${mod.modInfo.name}.mcaddon`));
+        
+        const archive = archiver('zip');
+        archive.on('warning', (err) => {
+            console.warn(`[rubydia2] While creating .mcaddon file: ${err}`)
+        });
+        archive.on('error', (err) => {
+            throw new Error(`[rubydia2] While creating .mcaddon file: ${err}`);
+        });
+        
+        archive.pipe(output_stream);
+        
+        const rp_path = path.join(generate_path || "./build/", 'resource_packs');
+        const bp_path = path.join(generate_path || "./build/", 'behavior_packs');
+        
+        archive.directory(rp_path, `${mod.modInfo.name} [RP]`);
+        archive.directory(bp_path,  `${mod.modInfo.name} [BP]`);
+
+        console.log("[rubydia2] Done Creating .mcaddon file.");
     }
 
     public static generateResourcePack(mod: Mod, uuids: BedrockUUIDs, generate_path?: string): void {
@@ -93,6 +113,14 @@ export class BedrockModGenerator extends BaseModGenerator {
         console.log("[rubydia2] Generating manifest.json...");
         const modManifest: BedrockManifest = modInfoToManifest(mod.modInfo, uuids.resource_pack, 'resources');
         fs.writeFileSync(path.join(generate_path, "manifest.json"), JSON.stringify(modManifest));
+
+        if (mod.modInfo.icon && fs.existsSync(mod.modInfo.icon)) {
+            fs.copyFileSync(mod.modInfo.icon, path.join(generate_path, "pack_icon.png"));
+        } else {
+            fs.copyFileSync(path.join(import.meta.dirname, "..", "assets", "default_icon.png"),
+             path.join(generate_path, "pack_icon.png"));
+        }
+        console.log("[rubydia2] Done generating resource pack.");
     }
 
     public static generateBehaviorPack(mod: Mod, uuids: BedrockUUIDs, generate_path?: string): void {
@@ -108,6 +136,15 @@ export class BedrockModGenerator extends BaseModGenerator {
         console.log("[rubydia2] Generating manifest.json...");
         const modManifest: BedrockManifest = modInfoToManifest(mod.modInfo, uuids.behavior_pack, 'data');
         fs.writeFileSync(path.join(generate_path, "manifest.json"), JSON.stringify(modManifest));
+
+        if (mod.modInfo.icon && fs.existsSync(mod.modInfo.icon)) {
+            fs.copyFileSync(mod.modInfo.icon, path.join(generate_path, "pack_icon.png"));
+        } else {
+            fs.copyFileSync(path.join(import.meta.dirname, "..", "assets", "default_icon.png"),
+             path.join(generate_path, "pack_icon.png"));
+        }
+
+        console.log("[rubydia2] Done generating behavior pack.");
     }
     public static generateOrGetUUIDs(): BedrockUUIDs {
         /////// Getting UUIDs without making TypeScript sad
