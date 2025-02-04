@@ -4,6 +4,8 @@ import { toCamelCaseString, toSnakeCaseString, capitalizeFirstLetter } from "./u
 import fs from "fs-extra";
 import path from "path";
 import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./fabric_mod";
+import * as shell from "shelljs";
+import os from "os";
 
 export type FabricSupportedJavaVersion = "1.21.4";
 export const latestMcJavaVersion: FabricSupportedJavaVersion = "1.21.4";
@@ -28,7 +30,7 @@ export interface FabricModSettings {
 }
 
 export class FabricModGenerator extends BaseModGenerator {
-    public static override generate(mod: Mod, version?: FabricSupportedJavaVersion): void {
+    public static override generate(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
         ///////////////////// FABRIC MOD GENERATION ///////////////////////////
         console.log("[rubydia2] Generating Fabric mod...");
 
@@ -43,7 +45,7 @@ export class FabricModGenerator extends BaseModGenerator {
             fabric_version: settingsByVersion[version].fabric_version,
             java_version: settingsByVersion[version].java_version
         };
-        const generate_path: string = process.env.DEFAULT_GENERATE_PATH || `./build/fabric/${version}/`;
+        const generate_path: string = this.getModGeneratePath(version, output_path);
 
         fs.ensureDirSync(generate_path);
         this.generateGradleFiles(generate_path, mod.modInfo, mod_fabric_settings);
@@ -62,7 +64,55 @@ export class FabricModGenerator extends BaseModGenerator {
 
         this.generateModFabricFiles(mod.modInfo, generate_path);
 
+        // Mod Java File
+        let mod_java_file: string = fs.readFileSync(
+            path.join(import.meta.dirname, "..", "java_files", "fabric",  "Mod.java"), "utf-8");
+
+        mod_java_file = this.parseJavaFile(mod_java_file, mod.modInfo);
+        fs.writeFileSync(path.join(java_package, `${capitalizeFirstLetter(toCamelCaseString(mod.modInfo.name))}.java`), mod_java_file);
+
         console.log("[rubydia2] Done generating Fabric mod.");
+    }
+
+    public static override generateAndLaunch(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
+        this.generate(mod, version, output_path);
+        if (!version) {
+            version = latestMcJavaVersion;
+        }
+        shell.cd(path.join(shell.pwd(), this.getModGeneratePath(version, output_path)));
+        if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
+            throw new Error("[rubydia2] Gradlew not found.");
+        }
+
+        if (os.platform() === 'win32') {
+            shell.exec(`gradlew.bat runClient`);
+        } else {
+            shell.exec(`./gradlew runClient`);
+        }
+    }
+
+    public static override generateToPath(mod: Mod, path: string, version?: FabricSupportedJavaVersion): void {
+        this.generate(mod, version, path);
+    }
+
+    public static generateAndBuild(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
+        this.generate(mod, version, output_path);
+        if (!version) {
+            version = latestMcJavaVersion;
+        }
+        this.buildGeneratedMod(this.getModGeneratePath(version, output_path));
+    }
+
+    public static buildGeneratedMod(mod_path: string) {
+        shell.cd(path.join(shell.pwd(), mod_path));
+        if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
+            throw new Error("[rubydia2] Gradlew not found.");
+        }
+        if (os.platform() === 'win32') {
+            shell.exec(`gradlew.bat build`);
+        } else {
+            shell.exec(`./gradlew build`);
+        }
     }
 
 
@@ -83,6 +133,10 @@ export class FabricModGenerator extends BaseModGenerator {
         }
 
         // settings.gradle
+        if (!fs.existsSync(path.join(gradleFilesFolder, "settings.gradle"))) {
+            throw new Error("[rubydia2] settings.gradle not found.");
+        }
+        fs.ensureDirSync(output_path);
         fs.copyFileSync(path.join(gradleFilesFolder, "settings.gradle"),
         path.join(output_path, "settings.gradle"));
 
@@ -93,14 +147,23 @@ export class FabricModGenerator extends BaseModGenerator {
         fs.writeFileSync(path.join(output_path, "build.gradle"), gradleBuild);
 
         // gradlew
+        if (!fs.existsSync(path.join(gradleFilesFolder, "gradlew"))) {
+            throw new Error("[rubydia2] gradlew not found.");
+        }
         fs.copyFileSync(path.join(gradleFilesFolder, "gradlew"),
         path.join(output_path, "gradlew"));
 
         // gradlew.bat
+        if (!fs.existsSync(path.join(gradleFilesFolder, "gradlew.bat"))) {
+            throw new Error("[rubydia2] gradlew.bat not found.");
+        }
         fs.copyFileSync(path.join(gradleFilesFolder, "gradlew.bat"),
         path.join(output_path, "gradlew.bat"));
 
         // gradle folder
+        if (!fs.existsSync(path.join(gradleFilesFolder, "gradle"))) {
+            throw new Error("[rubydia2] gradle folder not found.");
+        }
         fs.copySync(path.join(gradleFilesFolder, "gradle"), path.join(output_path, "gradle"));
 
         console.log("[rubydia2] Done generating gradle files.");
@@ -112,7 +175,8 @@ export class FabricModGenerator extends BaseModGenerator {
         // gradle.properties
         const mod_id: string = toSnakeCaseString(mod_info.name);
 
-        const gradleProperties: string = `
+        let gradleProperties: string = `
+# Generated With Rubydia2(Don't change. this file will be replaced on the next build)
 org.gradle.jvmargs=-Xmx1G
 org.gradle.parallel=true
 
@@ -126,7 +190,12 @@ maven_group=${process.env.JAVA_PACKAGE || "com.rubydia2." + (process.env.JAVA_MO
 archives_base_name=${process.env.JAVA_MODID || mod_id}
 
 fabric_version=${settings.fabric_version}
+
+
 `;
+        if (process.env.RUBYDIA2_GENERATE_JAVA_HOME) {
+            gradleProperties += `org.gradle.java.home=${process.env.RUBYDIA2_GENERATE_JAVA_HOME}`
+        }
 
         return gradleProperties;
     }
@@ -143,6 +212,9 @@ fabric_version=${settings.fabric_version}
 
     public static generateModFabricFiles(mod_info: ModInfo, output_path: string) {
         console.log("[rubydia2] Generating Fabric Files...");
+
+
+        fs.ensureDirSync(path.join(output_path, "src", "main", "resources"));
         
         const json_path: string = path.join(output_path, "src", "main", "resources", "fabric.mod.json");
 
@@ -166,15 +238,30 @@ fabric_version=${settings.fabric_version}
         const fabric_mod_loading_info: FabricModLoadingInfo = {
             environment: "*",
             entrypoints: {
-                main: [ process.env.JAVA_PACKAGE || 
-                    `com.rubydia2.${this.getModID(mod_info)}.${capitalizeFirstLetter(toCamelCaseString(mod_info.name))}`]
+                main: [ `${this.getModPackage(mod_info)}.${capitalizeFirstLetter(toCamelCaseString(mod_info.name))}`]
             },
             // no mixins for now
         }
         
         return {...fabric_mod_info, ...fabric_mod_metadata, ...fabric_mod_loading_info};
     }
+
+    public static parseJavaFile(java_file: string, mod_info: ModInfo): string {
+        java_file = java_file.replaceAll("${RUBYDIA2_MOD_PACKAGE}", this.getModPackage(mod_info));
+        java_file = java_file.replaceAll("${RUBYDIA2_MOD_ID}", this.getModID(mod_info));
+        java_file = java_file.replaceAll("${RUBYDIA2_MOD_CLASS_NAME}", capitalizeFirstLetter(toCamelCaseString(mod_info.name)));
+        return java_file;
+    }
+
     public static getModID(mod_info: ModInfo): string {
         return process.env.JAVA_MODID || toSnakeCaseString(mod_info.name);
+    }
+
+    public static getModPackage(mod_info: ModInfo): string {
+        return process.env.JAVA_PACKAGE || `com.rubydia2.${this.getModID(mod_info)}`;
+    }
+
+    public static getModGeneratePath(version: FabricSupportedJavaVersion, specified_path?: string): string {
+        return process.env.DEFAULT_GENERATE_PATH || specified_path || `./build/fabric/${version}/`
     }
 }
