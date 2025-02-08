@@ -1,12 +1,14 @@
-import type { Mod, ModInfo, Version } from "./mod";
-import { BaseModGenerator } from "./mod_generator";
-import { toCamelCaseString, toSnakeCaseString, capitalizeFirstLetter } from "./utils";
+import type { Mod, ModInfo, Version } from "../mod";
+import { BaseModGenerator } from "../mod_generator";
+import { toCamelCaseString, toSnakeCaseString, capitalizeFirstLetter } from "../utils";
 import fs from "fs-extra";
 import path from "path";
 import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./fabric_mod";
 import * as shell from "shelljs";
 import os from "os";
 import { latestLoaderVersion, settingsByVersion, type FabricModSettings, type FabricSupportedJavaVersion } from "./fabric_mod_settings";
+
+const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
 export class FabricModGenerator extends BaseModGenerator {
     public static override generate(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
@@ -35,13 +37,13 @@ export class FabricModGenerator extends BaseModGenerator {
         // Mod Java File
 
         let mod_java_file: string = fs.readFileSync(
-            path.join(import.meta.dirname, "..", "java_files", "fabric",  "Mod.java"), "utf-8");
+            path.join(rubydia2Folder, "java_files", "fabric",  "Mod.java"), "utf-8");
 
         mod_java_file = this.parseJavaFile(mod_java_file, mod.modInfo);
         fs.writeFileSync(path.join(java_package, `${capitalizeFirstLetter(toCamelCaseString(mod.modInfo.name))}.java`), mod_java_file);
 
         // Mod Icon
-        const rubydia2_icon = path.join(import.meta.dirname, "..", "assets", "default_icon.png");
+        const rubydia2_icon = path.join(rubydia2Folder, "assets", "default_icon.png");
         if (!fs.existsSync(rubydia2_icon)) {
             throw new Error("[rubydia2] Missing asset \"default_icon.png\".");
         }
@@ -127,7 +129,7 @@ export class FabricModGenerator extends BaseModGenerator {
         ///////////////////// GRADLE FILES GENERATION ///////////////////////////
         console.log("[rubydia2] Generating gradle files...");
 
-        const gradleFilesFolder: string = path.join(import.meta.dirname, "..", "gradle_files");
+        const gradleFilesFolder: string = path.join(rubydia2Folder, "gradle_files");
         
         if (!settings) {
             settings = settingsByVersion.latest;
@@ -206,7 +208,7 @@ fabric_version=${settings.fabric_version}
         ///////////////////// GRADLE BUILD GENERATION ///////////////////////////
         // build.gradle
         const gradleBuild = fs.readFileSync(
-            path.join(import.meta.dirname, "..", "gradle_files", "build.gradle"), "utf-8");
+            path.join(rubydia2Folder, "gradle_files", "build.gradle"), "utf-8");
 
         return gradleBuild.replaceAll("${RUBYDIA2_JAVA_VERSION}", settings.java_version);
     }
