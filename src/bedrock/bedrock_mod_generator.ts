@@ -59,26 +59,25 @@ export class BedrockModGenerator extends BaseModGenerator {
     }
 
     public static override generateAndLaunch(mod: Mod): void {
-        if (os.platform() === 'win32' && process.env.LOCALAPPDATA) {
-
-            // Getting Minecraft Bedrock Path on windows
-            const generate_path = path.join(process.env.LOCALAPPDATA,
-                 "Packages", "Microsoft.MinecraftUWP_8wekyb3d8bbwe",
-                  "LocalState", "games", "com.mojang");
-
-            // Generating mods
-            const rp_path = path.join(generate_path, "development_resource_packs", this.getResourcePackName(mod.modInfo));
-            const bp_path = path.join(generate_path, "development_behavior_packs", this.getBehaviorPackName(mod.modInfo));
-
-            this.generateResourcePackFromMod(mod, rp_path);
-            this.generateBehaviorPackFromMod(mod, bp_path);
-
-            // Launching Minecraft
-            console.log("[rubydia2] Done generating. launching Minecraft.");
-            open("minecraft://");
-        } else {
+        if (!(os.platform() === 'win32' && process.env.LOCALAPPDATA)) {
             throw new Error("[rubydia2] Unsupported platform to launch game.");
         }
+
+        // Getting Minecraft Bedrock Path on windows
+        const generate_path = path.join(process.env.LOCALAPPDATA,
+                "Packages", "Microsoft.MinecraftUWP_8wekyb3d8bbwe",
+                "LocalState", "games", "com.mojang");
+
+        // Generating mods
+        const rp_path = path.join(generate_path, "development_resource_packs", this.getResourcePackName(mod.modInfo));
+        const bp_path = path.join(generate_path, "development_behavior_packs", this.getBehaviorPackName(mod.modInfo));
+
+        this.generateResourcePackFromMod(mod, rp_path);
+        this.generateBehaviorPackFromMod(mod, bp_path);
+
+        // Launching Minecraft
+        console.log("[rubydia2] Done generating. launching Minecraft.");
+        open("minecraft://");
     }
 
     public static generateAndCreateMcAddon(mod: Mod, output_path?: string, generate_path?: string): void {
