@@ -9,8 +9,8 @@ export function modInfoToManifest(modInfo: ModInfo, [headerUuid, moduleUuid]: [s
     return {
         format_version: 2,
         header: {
-            name: `${modInfo.name} [${manifest_type === 'resources' ? 'RP' : 'BP'}]`,
-            description: modInfo.description,
+            name: 'pack.name',
+            description: 'pack.description',
             version: modInfo.version,
             min_engine_version: defaultMinEngineVersion,
             uuid: headerUuid

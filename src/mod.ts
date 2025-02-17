@@ -4,6 +4,10 @@ import { toSnakeCaseString } from "./utils";
 
 export type Version = [number, number, number];
 
+export interface Translation {
+    [key: string]: Partial<Record<MinecraftLanguage, string>>
+};
+
 export interface ModInfo {
     name: string;
     version: Version;
@@ -20,10 +24,10 @@ export abstract class Mod {
     // Items
     private items: {[key: string]: Item} = {};
     private translations: {
-        items: {
-            [key: string]: Partial<Record<MinecraftLanguage, string>>;
-        }
-    } = {items: {}};
+        items: Translation,
+        languages: MinecraftLanguage[],
+        keys: Translation
+    } = {items: {},keys: {}, languages: []};
 
     public addItem(item: Item): void {
         if (this.items[getItemFullID(item)]) throw new Error(`Item with ID:"${getItemFullID(item)}" already exists.`);
@@ -46,22 +50,63 @@ export abstract class Mod {
         return process.env.JAVA_MODID || toSnakeCaseString(this.modInfo.name);
     }
 
-    public setTranslation(item: Item, language: MinecraftLanguage, translation: string): void {
+    private addLanguageToTranslations(language: MinecraftLanguage): void {
+        if (!this.translations.languages.includes(language)) {
+            this.translations.languages.push(language);
+        }
+    }
+
+    public setItemTranslation(item: Item, language: MinecraftLanguage, translation: string): void {
+        this.addLanguageToTranslations(language);
+
         if (!this.translations.items[getItemFullID(item)]) {
             this.translations.items[getItemFullID(item)] = {};
         }
         this.translations.items[getItemFullID(item)][language] = translation;
     }
 
-    public removeTranslation(item: Item, language: MinecraftLanguage): void {
+    public setKeyTranslation(key: string, language: MinecraftLanguage, translation: string): void {
+        this.addLanguageToTranslations(language);
+
+        if (!this.translations.keys[key]) {
+            this.translations.keys[key] = {};
+        }
+        this.translations.keys[key][language] = translation;
+    }
+
+    public removeItemTranslation(item: Item, language: MinecraftLanguage): void {
         delete this.translations.items[getItemFullID(item)][language];
     }
 
-    public getAllTranslations(item: Item): Partial<Record<MinecraftLanguage, string>> {
+    public removeKeyTranslation(key: string, language: MinecraftLanguage): void {
+        delete this.translations.keys[key][language];
+    }
+
+    public getAllTranslationsForItem(item: Item): Partial<Record<MinecraftLanguage, string>> {
         return this.translations.items[getItemFullID(item)];
     }
 
-    public getTranslation(item: Item, language: MinecraftLanguage): string | undefined {
+    public getAllTranslationsForKey(key: string): Partial<Record<MinecraftLanguage, string>> {
+        return this.translations.keys[key];
+    }
+
+    public getItemTranslation(item: Item, language: MinecraftLanguage): string | undefined {
         return this.translations.items[getItemFullID(item)][language];
+    }
+
+    public getKeyTranslation(key: string, language: MinecraftLanguage): string | undefined {
+        return this.translations.items[key][language];
+    }
+
+    public getAllLanguages(): MinecraftLanguage[] {
+        return this.translations.languages;
+    }
+
+    public getAllItemTranslations(): Translation {
+        return this.translations.items;
+    }
+
+    public getAllKeyTranslations(): Translation {
+        return this.translations.keys;
     }
 }
