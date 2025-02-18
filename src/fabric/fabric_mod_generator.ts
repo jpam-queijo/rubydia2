@@ -1,4 +1,4 @@
-import type { Mod, ModInfo, Version } from "../mod";
+import type { Mod, ModInfo, Translation, Version } from "../mod";
 import { BaseModGenerator } from "../mod_generator";
 import { toCamelCaseString, toSnakeCaseString, capitalizeFirstLetter } from "../utils";
 import fs from "fs-extra";
@@ -7,6 +7,9 @@ import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata }
 import * as shell from "shelljs";
 import os from "os";
 import { latestLoaderVersion, settingsByVersion, type FabricModSettings, type FabricSupportedJavaVersion } from "./fabric_mod_settings";
+import { FabricJavaParser } from "./fabric_java";
+import type { Item } from "../item";
+import { isVersionNewerThan } from "./fabric_utils";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -39,7 +42,7 @@ export class FabricModGenerator extends BaseModGenerator {
         let mod_java_file: string = fs.readFileSync(
             path.join(rubydia2Folder, "java_files", "fabric",  "Mod.java"), "utf-8");
 
-        mod_java_file = this.parseJavaFile(mod_java_file, mod.modInfo);
+        mod_java_file = FabricJavaParser.parseModInfo(mod_java_file, mod.modInfo);
         fs.writeFileSync(path.join(java_package, `${capitalizeFirstLetter(toCamelCaseString(mod.modInfo.name))}.java`), mod_java_file);
 
         // Mod Icon
@@ -56,7 +59,8 @@ export class FabricModGenerator extends BaseModGenerator {
         }
 
         fs.copyFileSync(rubydia2_icon, path.join(assetsFolder, "rubydia2_icon.png"));
-
+        
+        this.generateModItems(mod.getItems(), mod.modInfo, mod.getAllItemTranslations(), generate_path);
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -255,11 +259,33 @@ fabric_version=${settings.fabric_version}
         return {...fabric_mod_info, ...fabric_mod_metadata, ...fabric_mod_loading_info};
     }
 
-    public static parseJavaFile(java_file: string, mod_info: ModInfo): string {
-        java_file = java_file.replaceAll("${RUBYDIA2_MOD_PACKAGE}", this.getModPackage(mod_info));
-        java_file = java_file.replaceAll("${RUBYDIA2_MOD_ID}", this.getModID(mod_info));
-        java_file = java_file.replaceAll("${RUBYDIA2_MOD_CLASS_NAME}", capitalizeFirstLetter(toCamelCaseString(mod_info.name)));
-        return java_file;
+    public static generateModItems(items: Item[], mod_info: ModInfo, translations: Translation, output_path: string, settings?: FabricModSettings): void {
+        console.log("[rubydia2] Generating Mod Items...");
+
+        let mcVersion: string = settingsByVersion.latest.version;
+        if (settings && settings.version) {
+            mcVersion = settings.version;
+        }
+        let mod_items_filepath: string = path.join(rubydia2Folder, "java_files", "fabric", "item", "ModItems.java")
+        if (isVersionNewerThan(mcVersion, "1.21.2") || mcVersion === "1.21.2") {
+            mod_items_filepath = path.join(rubydia2Folder, "java_files", "fabric", "1.21.2", "item", "ModItems.java");
+        }
+        
+        let file_java = fs.readFileSync(mod_items_filepath, "utf-8");
+        file_java = FabricJavaParser.parseModInfo(file_java, mod_info);
+
+        const items_java = FabricJavaParser.parseModItems(file_java, items);
+
+        const items_folder = path.join(this.getJavaSrcFolder(output_path), 
+        this.getModPackage(mod_info).replaceAll(".", path.sep), "item");
+
+        console.log(path.resolve(items_folder));
+
+        fs.ensureDirSync(items_folder);
+        fs.writeFileSync(path.join(items_folder, "ModItems.java"), items_java);
+        
+
+        console.log("[rubydia2] Done generating Mod Items.");
     }
 
     public static getModID(mod_info: ModInfo): string {
