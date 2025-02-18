@@ -43,6 +43,11 @@ export class FabricModGenerator extends BaseModGenerator {
             path.join(rubydia2Folder, "java_files", "fabric",  "Mod.java"), "utf-8");
 
         mod_java_file = FabricJavaParser.parseModInfo(mod_java_file, mod.modInfo);
+
+        // checking if mod has items if not then it don't need the item implementation code
+        mod_java_file = mod_java_file.replaceAll("${IF_RUBYDIA2_MOD_ITEMS}", (mod.getItems().length <= 0 ? "//" : ""));
+
+        // writing main.java
         fs.writeFileSync(path.join(java_package, `${capitalizeFirstLetter(toCamelCaseString(mod.modInfo.name))}.java`), mod_java_file);
 
         // Mod Icon
@@ -60,7 +65,10 @@ export class FabricModGenerator extends BaseModGenerator {
 
         fs.copyFileSync(rubydia2_icon, path.join(assetsFolder, "rubydia2_icon.png"));
         
-        this.generateModItems(mod.getItems(), mod.modInfo, mod.getAllItemTranslations(), generate_path);
+        // Items
+        if (mod.getItems().length > 0) {
+            this.generateModItems(mod.getItems(), mod.modInfo, mod.getAllItemTranslations(), generate_path);
+        }
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -278,8 +286,6 @@ fabric_version=${settings.fabric_version}
 
         const items_folder = path.join(this.getJavaSrcFolder(output_path), 
         this.getModPackage(mod_info).replaceAll(".", path.sep), "item");
-
-        console.log(path.resolve(items_folder));
 
         fs.ensureDirSync(items_folder);
         fs.writeFileSync(path.join(items_folder, "ModItems.java"), items_java);
