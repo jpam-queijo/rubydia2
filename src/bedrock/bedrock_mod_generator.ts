@@ -154,7 +154,10 @@ export class BedrockModGenerator extends BaseModGenerator {
         `pack.name=${mod_info.name} [${pack_type === 'resource_pack' ? 'RP' : 'BP'}]\npack.description=${mod_info.description}\n`
         );
 
-        languages.push.apply(languages, ['en_US']);
+        if (!languages.includes('en_US')) {
+            languages.push.apply(languages, ['en_US']);
+        }
+        
         fs.writeJSONSync(path.join(gen_path, "texts", "languages.json"), languages);
         if (mod_info.icon && fs.existsSync(mod_info.icon)) {
             fs.copyFileSync(mod_info.icon, path.join(gen_path, "pack_icon.png"));
