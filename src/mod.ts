@@ -34,6 +34,10 @@ export abstract class Mod {
     public addItem(item: Item): void {
         if (this.items[getItemFullID(item)]) throw new Error(`Item with ID:"${getItemFullID(item)}" already exists.`);
         this.items[getItemFullID(item)] = item;
+
+        if (!this.translations.items[getItemFullID(item)]['en_US']) {
+            this.setItemTranslation(item, 'en_US', item.name);
+        }
     }
 
     public getItems(): Item[] {
