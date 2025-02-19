@@ -1,5 +1,5 @@
 import { BaseModGenerator } from "../mod_generator";
-import { Mod, type ModInfo, type Translation } from "../mod";
+import { Mod, type ModInfo, type ModTranslation, type Translation } from "../mod";
 import { type BedrockManifest, type BedrockUUIDs } from "./bedrock_manifest";
 import { generateOrGetUUIDs, modInfoToManifest } from "./bedrock_utils";
 import fs from "fs-extra";
@@ -120,7 +120,8 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(generate_path); // Ensuring that Resource Pack folder exists
 
         this.generateBasePack(mod.modInfo, generate_path, 'resource_pack', mod.getAllLanguages(), uuids);
-        this.generateItemsResources(mod.modInfo, mod.getItems(), mod.getAllItemTranslations(), mod.getAllLanguages(), generate_path);
+        this.generateItemsResources(mod.modInfo, mod.getItems(), generate_path);
+        this.generateTranslations(mod.modInfo, 'resource_pack', mod.getAllModTranslations(), generate_path);
 
         console.log("[rubydia2] Done generating resource pack.");
     }
@@ -149,16 +150,6 @@ export class BedrockModGenerator extends BaseModGenerator {
         
         fs.writeJSONSync(path.join(gen_path, "manifest.json"), modManifest);
 
-        fs.ensureDirSync(path.join(gen_path, "texts"));
-        fs.writeFileSync(path.join(gen_path, "texts", "en_US.lang"),
-        `pack.name=${mod_info.name} [${pack_type === 'resource_pack' ? 'RP' : 'BP'}]\npack.description=${mod_info.description}\n`
-        );
-
-        if (!languages.includes('en_US')) {
-            languages.push.apply(languages, ['en_US']);
-        }
-        
-        fs.writeJSONSync(path.join(gen_path, "texts", "languages.json"), languages);
         if (mod_info.icon && fs.existsSync(mod_info.icon)) {
             fs.copyFileSync(mod_info.icon, path.join(gen_path, "pack_icon.png"));
         } else {
@@ -168,9 +159,7 @@ export class BedrockModGenerator extends BaseModGenerator {
         console.log("[rubydia2] Done generating base pack.");
     }
 
-    public static generateItemsResources(
-        mod_info: ModInfo, items: Item[], translations: Translation, languages:
-        MinecraftLanguage[], generate_path: string): void {
+    public static generateItemsResources(mod_info: ModInfo, items: Item[], generate_path: string): void {
         console.log("[rubydia2] Generating items resources...");
         
         fs.ensureDirSync(path.join(generate_path, "textures", "items")); // Ensuring that Items folder exists
@@ -185,27 +174,42 @@ export class BedrockModGenerator extends BaseModGenerator {
             }
         });
 
-        const en_us_translations= fs.readFileSync(path.join(generate_path, "texts", "en_US.lang"), {
-            encoding: 'utf8',
-            flag: 'r'
-        });
-        if (typeof en_us_translations !== 'string') {
-            throw new Error(`[rubydia2] en_US.lang not properly generated.`);
-        }
-
         fs.writeJSONSync(
             path.join(generate_path, "textures", "item_texture.json"), 
             BedrockItemGenerator.generateItemTextureJSON(this.getResourcePackName(mod_info),items)
         );
 
-        for (const language of languages) {
-            fs.appendFileSync(
+        console.log("[rubydia2] Done generating items resources.");
+    }
+
+    public static generateTranslations(mod_info: ModInfo, pack_type: PackType, mod_translations: ModTranslation, generate_path: string) {
+        console.log("[rubydia2] Generating translations...");
+
+        fs.ensureDirSync(path.join(generate_path, "texts"));
+
+        if (!mod_translations.languages.includes('en_US')) {
+            mod_translations.languages.push.apply(mod_translations.languages, ['en_US']);
+        }
+        
+        fs.writeJSONSync(path.join(generate_path, "texts", "languages.json"), mod_translations.languages);
+
+        for (const language of mod_translations.languages) {
+            let translation_file_contents = '';
+
+            if (language === 'en_US') {
+                translation_file_contents += `pack.name=${mod_info.name} [${pack_type === 'resource_pack' ? 'RP' : 'BP'}]\npack.description=${mod_info.description}\n`;
+            }
+
+            translation_file_contents += BedrockTranslationGenerator.generateItemTranslations(mod_translations.items, language);
+            translation_file_contents += BedrockTranslationGenerator.generateKeyTranslations(mod_translations.keys, language);
+
+            fs.writeFileSync(
                 path.join(generate_path, "texts", `${language}.lang`), 
-                BedrockTranslationGenerator.generateItemTranslations(translations, language)
+                translation_file_contents
             );
         }
 
-        console.log("[rubydia2] Done generating items resources.");
+        console.log("[rubydia2] Done Generating translations");
     }
 
     public static generateItemsBehavior(items: Item[], generate_path: string): void {

@@ -4,6 +4,12 @@ import { toSnakeCaseString } from "./utils";
 
 export type Version = [number, number, number];
 
+export interface ModTranslation {
+    items: Translation,
+    languages: MinecraftLanguage[],
+    keys: Translation
+}
+
 export interface Translation {
     [key: string]: Partial<Record<MinecraftLanguage, string>>
 };
@@ -23,11 +29,7 @@ export abstract class Mod {
 
     // Items
     private items: {[key: string]: Item} = {};
-    private translations: {
-        items: Translation,
-        languages: MinecraftLanguage[],
-        keys: Translation
-    } = {items: {},keys: {}, languages: []};
+    private translations: ModTranslation  = {items: {},keys: {}, languages: []};
 
     public addItem(item: Item): void {
         if (this.items[getItemFullID(item)]) throw new Error(`Item with ID:"${getItemFullID(item)}" already exists.`);
@@ -108,5 +110,9 @@ export abstract class Mod {
 
     public getAllKeyTranslations(): Translation {
         return this.translations.keys;
+    }
+
+    public getAllModTranslations(): ModTranslation {
+        return this.translations;
     }
 }
