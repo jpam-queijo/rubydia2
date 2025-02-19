@@ -10,6 +10,7 @@ import { latestLoaderVersion, settingsByVersion, type FabricModSettings, type Fa
 import { FabricJavaParser } from "./fabric_java";
 import type { Item } from "../item";
 import { isVersionNewerThan } from "./fabric_utils";
+import { FabricTranslationGenerator } from "./fabric_translation_generator";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -69,6 +70,8 @@ export class FabricModGenerator extends BaseModGenerator {
         if (mod.getItems().length > 0) {
             this.generateModItems(mod.getItems(), mod.modInfo, mod.getAllItemTranslations(), generate_path);
         }
+
+        this.generateTranslations(mod, generate_path);
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -274,7 +277,9 @@ fabric_version=${settings.fabric_version}
         if (settings && settings.version) {
             mcVersion = settings.version;
         }
-        let mod_items_filepath: string = path.join(rubydia2Folder, "java_files", "fabric", "item", "ModItems.java")
+
+        let mod_items_filepath: string = path.join(rubydia2Folder, "java_files", "fabric", "item", "ModItems.java");
+        
         if (isVersionNewerThan(mcVersion, "1.21.2") || mcVersion === "1.21.2") {
             mod_items_filepath = path.join(rubydia2Folder, "java_files", "fabric", "1.21.2", "item", "ModItems.java");
         }
@@ -292,6 +297,20 @@ fabric_version=${settings.fabric_version}
         
 
         console.log("[rubydia2] Done generating Mod Items.");
+    }
+
+    public static generateTranslations(mod: Mod, generate_path: string): void {
+        const mod_id = this.getModID(mod.modInfo);
+        const lang_folder_path = path.join(this.getAssetsFolderLocation(generate_path, mod_id), "lang");
+        
+        fs.ensureDirSync(lang_folder_path);
+
+        //let translations: {[key: string]: string} = {};
+        for (const language of mod.getAllLanguages()) {
+            const json_filepath = path.join(lang_folder_path, `${language.toLowerCase()}.json`);
+            const translation = FabricTranslationGenerator.generateItemTranslation(mod_id, mod.getAllItemTranslations(), language);
+            fs.writeJSONSync(json_filepath, translation);
+        }
     }
 
     public static getModID(mod_info: ModInfo): string {
