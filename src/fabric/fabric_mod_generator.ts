@@ -3,15 +3,15 @@ import { BaseModGenerator } from "../mod_generator";
 import { toCamelCaseString, toSnakeCaseString, capitalizeFirstLetter } from "../utils";
 import fs from "fs-extra";
 import path from "path";
-import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./fabric_mod";
+import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./mod";
 import * as shell from "shelljs";
 import os from "os";
-import { latestLoaderVersion, settingsByVersion, type FabricModSettings, type FabricSupportedJavaVersion } from "./fabric_mod_settings";
-import { FabricJavaParser } from "./fabric_java";
+import { latestLoaderVersion, settingsByVersion, type FabricModSettings, type FabricSupportedJavaVersion } from "./mod_settings";
+import { FabricJavaParser } from "./java_code";
 import type { Item } from "../item";
-import { isVersionNewerThan } from "./fabric_utils";
-import { FabricTranslationGenerator } from "./fabric_translation_generator";
-import { FabricItemGenerator } from "./fabric_item";
+import { isVersionNewerThan } from "./utils";
+import { FabricTranslationGenerator } from "./translation_generator";
+import { FabricItemGenerator } from "./item";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 

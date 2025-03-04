@@ -1,6 +1,6 @@
 import { getItemFullID, type Item } from "../item";
-import { settingsByVersion, type FabricModSettings } from "./fabric_mod_settings";
-import { isVersionNewerThan } from "./fabric_utils";
+import { settingsByVersion, type FabricModSettings } from "./mod_settings";
+import { isVersionNewerThan } from "./utils";
 import * as JavaItemModel from "../java/item_model/model";
 
 export class FabricItemGenerator {

@@ -1,7 +1,7 @@
 import type { Item } from "../item";
 import type { ModInfo } from "../mod";
 import { capitalizeFirstLetter, toCamelCaseString } from "../utils";
-import { FabricItemGenerator } from "./fabric_item";
+import { FabricItemGenerator } from "./item";
 import { FabricModGenerator } from "./fabric_mod_generator";
 
 export class FabricJavaParser {
