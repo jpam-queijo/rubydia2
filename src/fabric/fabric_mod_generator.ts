@@ -11,6 +11,7 @@ import { FabricJavaParser } from "./fabric_java";
 import type { Item } from "../item";
 import { isVersionNewerThan } from "./fabric_utils";
 import { FabricTranslationGenerator } from "./fabric_translation_generator";
+import { FabricItemGenerator } from "./fabric_item";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -68,10 +69,12 @@ export class FabricModGenerator extends BaseModGenerator {
         
         // Items
         if (mod.getItems().length > 0) {
-            this.generateModItems(mod.getItems(), mod.modInfo, mod.getAllItemTranslations(), generate_path);
+            this.generateModItems(mod.getItems(), mod.modInfo, generate_path);
         }
 
         this.generateTranslations(mod, generate_path);
+        this.generateModels(mod, generate_path);
+        this.copyItemTextures(mod.getItems(), mod.modInfo, generate_path);
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }
@@ -270,7 +273,7 @@ fabric_version=${settings.fabric_version}
         return {...fabric_mod_info, ...fabric_mod_metadata, ...fabric_mod_loading_info};
     }
 
-    public static generateModItems(items: Item[], mod_info: ModInfo, translations: Translation, output_path: string, settings?: FabricModSettings): void {
+    public static generateModItems(items: Item[], mod_info: ModInfo, output_path: string, settings?: FabricModSettings): void {
         console.log("[rubydia2] Generating Mod Items...");
 
         let mcVersion: string = settingsByVersion.latest.version;
@@ -311,6 +314,47 @@ fabric_version=${settings.fabric_version}
             const translation = FabricTranslationGenerator.generateItemTranslation(mod_id, mod.getAllItemTranslations(), language);
             fs.writeJSONSync(json_filepath, translation);
         }
+    }
+
+    public static generateModels(mod: Mod, generate_path: string): void {
+        const assets_folder = this.getAssetsFolderLocation(generate_path, this.getModID(mod.modInfo));
+        const item_models_folder = path.join(assets_folder, "models", "item")
+        fs.ensureDirSync(item_models_folder);
+
+        console.log("[rubydia2] Generating item models...");
+
+        mod.getItems().forEach(item => {
+            let default_item_texture: boolean = false;
+            if (item.texture) {
+                default_item_texture = !fs.existsSync(item.texture);
+            }
+            const item_model = FabricItemGenerator.generateItemModel(item, default_item_texture);
+            fs.writeJSONSync(path.join(item_models_folder, `${item.id}.json`), item_model);
+        });
+
+        console.log("[rubydia2] Done generating item models.");
+    }
+
+    public static copyItemTextures(items: Item[], mod_info: ModInfo, generate_path: string): void {
+        const assets_folder = this.getAssetsFolderLocation(generate_path, this.getModID(mod_info));
+        const item_texture_folder = path.join(assets_folder, "textures", "item");
+        const misc_texture_folder = path.join(assets_folder, "textures", "misc");
+        const queijo_texture = path.join(rubydia2Folder, "assets", "queijo.png")
+
+        fs.ensureDirSync(item_texture_folder);
+        fs.ensureDirSync(misc_texture_folder);
+
+        if (!fs.existsSync(queijo_texture)) {
+            throw new Error("[rubydia2] Default item texture \"queijo.png\".");
+        }
+
+        fs.copyFileSync(queijo_texture, path.join(misc_texture_folder, "queijo.png"));
+
+        items.forEach(item => {
+            if (item.texture && fs.existsSync(item.texture)) {
+                fs.copyFileSync(item.texture, path.join(item_texture_folder, `${item.id}.png`));
+            }
+        });
     }
 
     public static getModID(mod_info: ModInfo): string {

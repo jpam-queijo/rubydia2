@@ -1,6 +1,7 @@
-import type { Item } from "../item";
+import { getItemFullID, type Item } from "../item";
 import { settingsByVersion, type FabricModSettings } from "./fabric_mod_settings";
 import { isVersionNewerThan } from "./fabric_utils";
+import * as JavaItemModel from "../java/item_model/model";
 
 export class FabricItemGenerator {
     public static generateItemJava(item: Item, version?: FabricModSettings): string {
@@ -24,5 +25,22 @@ export class FabricItemGenerator {
             item_settings_modifiers += `.maxCount(${item.max_stack_size})`;
         }
         return 'new Item.Settings()' + item_settings_modifiers;
+    }
+
+    public static generateItemModel(item: Item, default_texture?: boolean): JavaItemModel.Model {
+        if (!item.texture || default_texture === true) {
+            return {
+                parent: "minecraft:item/generated",
+                textures: {
+                    layer0: `${item.namespace}:misc/queijo`
+                }
+            };
+        }
+        return {
+            parent: "minecraft:item/generated",
+            textures: {
+                layer0: `${item.namespace}:item/${item.id}`
+            }
+        };
     }
 }
