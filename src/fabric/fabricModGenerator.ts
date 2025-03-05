@@ -73,10 +73,21 @@ export class FabricModGenerator extends BaseModGenerator {
         if (mod.getItems().length > 0) {
             this.generateModItems(mod.getItems(), mod.modInfo, generate_path);
         }
-
+        const mod_items = mod.getItems();
+        console.log("Generating translations...");
         TranslationGenerator.generateAllTranslations(mod.modInfo, mod.getAllItemTranslations(), mod.getAllLanguages(), generate_path);
-        JavaItemUtils.generateModels(mod.getItems(), generate_path, mod.modInfo);
-        JavaItemUtils.copyItemTextures(mod.getItems(), mod.modInfo, generate_path);
+        console.log("Done generating translations.");
+        
+        console.log("Generating Item Models");
+        JavaItemUtils.generateModels(mod_items, generate_path, mod.modInfo);
+        JavaItemUtils.generateItemModelDescription(mod_items, generate_path);
+        console.log("Done generating Item Models.");
+        
+        console.log("Copying Item Textures");
+        JavaItemUtils.copyItemTextures(mod_items, mod.modInfo, generate_path);
+        console.log("Done copying item textures.");
+
+        
 
         console.log("[rubydia2] Done generating Fabric mod.");
     }

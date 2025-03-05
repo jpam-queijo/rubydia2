@@ -56,7 +56,7 @@ export interface Select {
 export interface Simple {
     type: "minecraft:model";
     model: string;
-    tints: (TintTypes.Color | TintTypes.Grass | TintTypes.CustomModelData | TintTypes.Constant)[];
+    tints?: (TintTypes.Color | TintTypes.Grass | TintTypes.CustomModelData | TintTypes.Constant)[];
 }
 
 export interface Condition {
