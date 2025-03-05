@@ -1,5 +1,6 @@
 // Generated with Rubydia2(don't make changes it will be regenerated)
 // Boilerplate Java Mod Class that will be used for every mod
+// Compatible with 1.21.2+
 
 package ${RUBYDIA2_MOD_PACKAGE}.item;
 

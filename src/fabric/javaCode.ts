@@ -2,6 +2,7 @@ import type { Item } from "../item";
 import type { ModInfo } from "../mod";
 import { FabricItemGenerator } from "./item";
 import { ModUtils } from "../java/modUtils";
+import type { FabricModSettings } from "./modSettings";
 
 export class FabricJavaParser {
     static parseModInfo(file: string, mod_info: ModInfo): string {
@@ -11,11 +12,11 @@ export class FabricJavaParser {
         return file;
     }
 
-    static parseModItems(file: string, items: Item[], mod_id: string): string {
+    static parseModItems(file: string, items: Item[], mod_id: string, version?: FabricModSettings): string {
         let items_java: string = "";
 
         for (const item of items) {
-            items_java += FabricItemGenerator.generateItemJava(item, mod_id);
+            items_java += FabricItemGenerator.generateItemJava(item, mod_id, version);
         }
 
         file = file.replaceAll("${RUBYDIA2_MOD_ITEMS_REGISTER}", items_java);

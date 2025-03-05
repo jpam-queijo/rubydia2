@@ -19,7 +19,7 @@ const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 export class FabricModGenerator extends BaseModGenerator {
     public static override generate(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
         ///////////////////// FABRIC MOD GENERATION ///////////////////////////
-        console.log("[rubydia2] Generating Fabric mod...");
+        console.log(`[rubydia2] Generating Fabric mod for version ${version}...`);
 
         const mod_id = ModUtils.getModID(mod.modInfo);
 
@@ -27,7 +27,7 @@ export class FabricModGenerator extends BaseModGenerator {
             version = settingsByVersion.latest.version;
         }
 
-        const mod_fabric_settings: FabricModSettings = settingsByVersion.latest;
+        const mod_fabric_settings: FabricModSettings = settingsByVersion[version];
         const generate_path: string = ModUtils.getModGeneratePath(version, output_path);
 
         fs.ensureDirSync(generate_path);
@@ -70,7 +70,7 @@ export class FabricModGenerator extends BaseModGenerator {
         
         // Items
         if (mod.getItems().length > 0) {
-            this.generateModItems(mod.getItems(), mod.modInfo, generate_path);
+            this.generateModItems(mod.getItems(), mod.modInfo, generate_path, mod_fabric_settings);
         }
         const mod_items = mod.getItems();
         console.log("[rubydia2] Generating translations...");
@@ -110,6 +110,24 @@ export class FabricModGenerator extends BaseModGenerator {
         }
     }
 
+    public static generateJar(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
+        if (!version) {
+            version = settingsByVersion.latest.version;
+        }
+        fs.ensureDirSync("./dist/");
+
+        this.generateAndBuild(mod, version, output_path);
+
+        const mod_path = ModUtils.getModGeneratePath(version, output_path);
+        const libs_folder = path.join(mod_path, "build", "libs");
+
+        if (fs.existsSync(libs_folder)) {
+            fs.copySync(libs_folder, path.resolve("dist/"));
+        } else {
+            throw new Error(`[rubydia2] Error: Not found the folder containing the mod jar files in ${libs_folder}.`);
+        }
+    }
+
     public static override generateToPath(mod: Mod, path: string, version?: FabricSupportedJavaVersion): void {
         this.generate(mod, version, path);
     }
@@ -125,6 +143,8 @@ export class FabricModGenerator extends BaseModGenerator {
     public static buildGeneratedMod(mod_path: string): void {
         console.log("[rubydia2] Building generated mod...");
 
+        const original_path = shell.pwd();
+
         shell.cd(path.join(shell.pwd(), mod_path));
         if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
             throw new Error("[rubydia2] Gradlew not found.");
@@ -134,6 +154,8 @@ export class FabricModGenerator extends BaseModGenerator {
         } else {
             shell.exec(`./gradlew build`);
         }
+
+        shell.cd(original_path);
 
         console.log("[rubydia2] Done building generated mod.");
     }
@@ -212,7 +234,7 @@ export class FabricModGenerator extends BaseModGenerator {
         let file_java = fs.readFileSync(mod_items_filepath, "utf-8");
         file_java = FabricJavaParser.parseModInfo(file_java, mod_info);
 
-        const items_java = FabricJavaParser.parseModItems(file_java, items, ModUtils.getModID(mod_info));
+        const items_java = FabricJavaParser.parseModItems(file_java, items, ModUtils.getModID(mod_info), settings);
 
         const items_folder = path.join(ModUtils.getJavaSrcFolder(output_path), 
         ModUtils.getModPackage(mod_info).replaceAll(".", path.sep), "item");

@@ -1,5 +1,6 @@
 // Generated with Rubydia2(don't make changes it will be regenerated)
 // Boilerplate Java Mod Class that will be used for every mod
+// Compatible with 1.20.5 - 1.21.1
 
 package ${RUBYDIA2_MOD_PACKAGE}.item;
 
@@ -11,6 +12,9 @@ import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
+
+// Rarity
+import net.minecraft.util.Rarity;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

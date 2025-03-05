@@ -1,4 +1,4 @@
-import { getItemFullID, getItemNamespace, type Item } from "../item";
+import { getItemNamespace, type Item } from "../item";
 import { settingsByVersion, type FabricModSettings } from "./modSettings";
 import { isVersionNewerThan } from "./utils";
 
