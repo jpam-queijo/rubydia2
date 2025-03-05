@@ -11,8 +11,6 @@ export class JavaItemUtils {
         const item_texture_folder = path.join(assets_folder, "textures", "item");
         const misc_texture_folder = path.join(assets_folder, "textures", "misc");
         const queijo_texture = path.join(ModUtils.getRubydia2Folder(), "assets", "queijo.png");
-        console.log(queijo_texture);
-        console.log(ModUtils.getRubydia2Folder());
 
         fs.ensureDirSync(item_texture_folder);
         fs.ensureDirSync(misc_texture_folder);

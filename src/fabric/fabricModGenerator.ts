@@ -63,7 +63,7 @@ export class FabricModGenerator extends BaseModGenerator {
         if (mod.modInfo.icon && fs.existsSync(mod.modInfo.icon)) {
             fs.copyFileSync(mod.modInfo.icon, path.join(assetsFolder, "icon.png"));
         } else {
-            console.warn("[rubydia2] Icon Specified not found. Using rubydia2 icon.")
+            console.warn("[rubydia2] Icon Specified not found. Using rubydia2 icon.");
             fs.copyFileSync(rubydia2_icon, path.join(assetsFolder, "icon.png"));
         }
 
