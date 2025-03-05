@@ -5,13 +5,13 @@ import { toSnakeCaseString } from "./utils";
 export type Version = [number, number, number];
 
 export interface ModTranslation {
-    items: Translation,
-    languages: MinecraftLanguage[],
-    keys: Translation
+    items: Translation;
+    languages: MinecraftLanguage[];
+    keys: Translation;
 }
 
 export interface Translation {
-    [key: string]: Partial<Record<MinecraftLanguage, string>>
+    [key: string]: Partial<Record<MinecraftLanguage, string>>;
 };
 
 export interface ModInfo {
@@ -29,13 +29,13 @@ export abstract class Mod {
 
     // Items
     private items: {[key: string]: Item} = {};
-    private translations: ModTranslation  = {items: {},keys: {}, languages: []};
+    private translations: ModTranslation  = {items: {}, keys: {}, languages: []};
 
     public addItem(item: Item): void {
         if (this.items[getItemFullID(item)]) throw new Error(`Item with ID:"${getItemFullID(item)}" already exists.`);
         this.items[getItemFullID(item)] = item;
 
-        if (!this.translations.items[getItemFullID(item)]['en_US']) {
+        if (!this.getItemTranslation(item, 'en_US')) {
             this.setItemTranslation(item, 'en_US', item.name);
         }
     }
@@ -64,11 +64,12 @@ export abstract class Mod {
 
     public setItemTranslation(item: Item, language: MinecraftLanguage, translation: string): void {
         this.addLanguageToTranslations(language);
-
-        if (!this.translations.items[getItemFullID(item)]) {
-            this.translations.items[getItemFullID(item)] = {};
+        const itemID = getItemFullID(item);
+        if (!this.translations.items[itemID]) {
+            this.translations.items[itemID] = {};
         }
-        this.translations.items[getItemFullID(item)][language] = translation;
+
+        this.translations.items[itemID][language] = translation;
     }
 
     public setKeyTranslation(key: string, language: MinecraftLanguage, translation: string): void {
@@ -97,11 +98,21 @@ export abstract class Mod {
     }
 
     public getItemTranslation(item: Item, language: MinecraftLanguage): string | undefined {
-        return this.translations.items[getItemFullID(item)][language];
+        const itemID = getItemFullID(item);
+
+        if (!this.translations.items[itemID]) {
+            this.translations.items[itemID] = {};
+        }
+
+        return this.translations.items[itemID][language];
     }
 
     public getKeyTranslation(key: string, language: MinecraftLanguage): string | undefined {
-        return this.translations.items[key][language];
+        if (!this.translations.keys[key]) {
+            this.translations.keys[key] = {};
+        }
+
+        return this.translations.keys[key][language];
     }
 
     public getAllLanguages(): MinecraftLanguage[] {
