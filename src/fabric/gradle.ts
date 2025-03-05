@@ -3,7 +3,6 @@ import { latestLoaderVersion, settingsByVersion, type FabricModSettings } from "
 import path from "path";
 import fs from "fs-extra";
 import type { ModInfo } from "../mod";
-import { toSnakeCaseString } from "../utils";
 
 export class GradleUtilities {
     public static generateGradleFiles(output_path: string,
@@ -58,7 +57,7 @@ export class GradleUtilities {
     public static gradlePropertiesGenerator(settings: FabricModSettings, mod_info: ModInfo): string {
         ///////////////////// GRADLE PROPERTIES GENERATION ///////////////////////////
         // gradle.properties
-        const mod_id: string = toSnakeCaseString(mod_info.name);
+        const mod_id: string = ModUtils.getModID(mod_info);
 
         let gradleProperties: string = `
 # Generated With Rubydia2(Don't change. this file will be replaced on the next build)
@@ -71,8 +70,8 @@ loader_version=${latestLoaderVersion}
 
 mod_version=${mod_info.version.join(".") || "1.0.0"}
 
-maven_group=${process.env.JAVA_PACKAGE || "com.rubydia2." + (process.env.JAVA_MODID || mod_id)}
-archives_base_name=${process.env.JAVA_MODID || mod_id}
+maven_group=${process.env.JAVA_PACKAGE || "com.rubydia2." + (mod_id)}
+archives_base_name=${mod_id}
 
 fabric_version=${settings.fabric_version}
 

@@ -1,6 +1,5 @@
 import type { Mod, ModInfo } from "../mod";
 import { BaseModGenerator } from "../mod_generator";
-import { toCamelCaseString, capitalizeFirstLetter } from "../utils";
 import fs from "fs-extra";
 import path from "path";
 import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./mod";
@@ -52,7 +51,7 @@ export class FabricModGenerator extends BaseModGenerator {
         mod_java_file = mod_java_file.replaceAll("${IF_RUBYDIA2_MOD_ITEMS}", (mod.getItems().length <= 0 ? "//" : ""));
 
         // writing main.java
-        fs.writeFileSync(path.join(java_package, `${capitalizeFirstLetter(toCamelCaseString(mod.modInfo.name))}.java`), mod_java_file);
+        fs.writeFileSync(path.join(java_package, `${ModUtils.getModClassName(mod.modInfo)}.java`), mod_java_file);
 
         // Mod Icon
         const rubydia2_icon = path.join(rubydia2Folder, "assets", "default_icon.png");
@@ -188,7 +187,7 @@ export class FabricModGenerator extends BaseModGenerator {
         const fabric_mod_loading_info: FabricModLoadingInfo = {
             environment: "*",
             entrypoints: {
-                main: [ `${ModUtils.getModPackage(mod_info)}.${capitalizeFirstLetter(toCamelCaseString(mod_info.name))}`]
+                main: [ `${ModUtils.getModPackage(mod_info)}.${ModUtils.getModClassName(mod_info)}`]
             },
             // no mixins for now
         }

@@ -1,11 +1,15 @@
 import type { FabricSupportedJavaVersion } from "../fabric/modSettings";
 import type { ModInfo } from "../mod";
-import { toSnakeCaseString } from "../utils";
+import { capitalizeFirstLetter, toCamelCaseString, toSnakeCaseString } from "../utils";
 import path from "path";
 
 export class ModUtils {
     public static getModID(mod_info: ModInfo): string {
-        return process.env.JAVA_MODID || toSnakeCaseString(mod_info.name);
+        return process.env.MODID || toSnakeCaseString(mod_info.modid || mod_info.name);
+    }
+
+    public static getModClassName(mod_info: ModInfo) {
+        return capitalizeFirstLetter(process.env.CLASS_NAME || toCamelCaseString(mod_info.modid || mod_info.name));
     }
 
     public static getModPackage(mod_info: ModInfo): string {

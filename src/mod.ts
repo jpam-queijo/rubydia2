@@ -1,6 +1,6 @@
 import { getItemFullID, type Item } from "./item";
 import type { MinecraftLanguage } from "./language";
-import { toSnakeCaseString } from "./utils";
+import { toCamelCaseString, toSnakeCaseString } from "./utils";
 
 export type Version = [number, number, number];
 
@@ -16,6 +16,7 @@ export interface Translation {
 
 export interface ModInfo {
     name: string;
+    modid?: string;
     version: Version;
     description?: string;
     icon?: string;
@@ -53,7 +54,11 @@ export abstract class Mod {
     }
 
     public getModID(): string {
-        return process.env.JAVA_MODID || toSnakeCaseString(this.modInfo.name);
+        return process.env.MODID || toSnakeCaseString(this.modInfo.modid || this.modInfo.name);
+    }
+
+    public getModClassName() {
+        return toCamelCaseString(process.env.CLASS_NAME || toCamelCaseString(this.modInfo.modid || this.modInfo.name));
     }
 
     private addLanguageToTranslations(language: MinecraftLanguage): void {
