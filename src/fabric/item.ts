@@ -1,5 +1,5 @@
 import { getItemFullID, type Item } from "../item";
-import { settingsByVersion, type FabricModSettings } from "./mod_settings";
+import { settingsByVersion, type FabricModSettings } from "./modSettings";
 import { isVersionNewerThan } from "./utils";
 import * as JavaItemModel from "../java/item_model/model";
 

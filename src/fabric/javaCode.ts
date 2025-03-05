@@ -2,12 +2,12 @@ import type { Item } from "../item";
 import type { ModInfo } from "../mod";
 import { capitalizeFirstLetter, toCamelCaseString } from "../utils";
 import { FabricItemGenerator } from "./item";
-import { FabricModGenerator } from "./fabric_mod_generator";
+import { ModUtils } from "../java/modUtils";
 
 export class FabricJavaParser {
     static parseModInfo(file: string, mod_info: ModInfo): string {
-        file = file.replaceAll("${RUBYDIA2_MOD_PACKAGE}", FabricModGenerator.getModPackage(mod_info));
-        file = file.replaceAll("${RUBYDIA2_MOD_ID}", FabricModGenerator.getModID(mod_info));
+        file = file.replaceAll("${RUBYDIA2_MOD_PACKAGE}", ModUtils.getModPackage(mod_info));
+        file = file.replaceAll("${RUBYDIA2_MOD_ID}", ModUtils.getModID(mod_info));
         file = file.replaceAll("${RUBYDIA2_MOD_CLASS_NAME}", capitalizeFirstLetter(toCamelCaseString(mod_info.name)));
         return file;
     }
