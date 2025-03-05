@@ -138,6 +138,7 @@ export class BedrockModGenerator extends BaseModGenerator {
 
         this.generateBasePack(mod.modInfo, generate_path, 'behavior_pack', mod.getAllLanguages(), uuids);
         this.generateItemsBehavior(mod.getItems(), generate_path);
+        this.generateTranslations(mod.modInfo, 'behavior_pack', mod.getAllModTranslations(), generate_path);
 
         console.log("[rubydia2] Done generating behavior pack.");
     }
@@ -200,8 +201,10 @@ export class BedrockModGenerator extends BaseModGenerator {
                 translation_file_contents += `pack.name=${mod_info.name} [${pack_type === 'resource_pack' ? 'RP' : 'BP'}]\npack.description=${mod_info.description}\n`;
             }
 
-            translation_file_contents += BedrockTranslationGenerator.generateItemTranslations(mod_translations.items, language);
-            translation_file_contents += BedrockTranslationGenerator.generateKeyTranslations(mod_translations.keys, language);
+            if (pack_type == 'resource_pack') {
+                translation_file_contents += BedrockTranslationGenerator.generateItemTranslations(mod_translations.items, language);
+                translation_file_contents += BedrockTranslationGenerator.generateKeyTranslations(mod_translations.keys, language);
+            }
 
             fs.writeFileSync(
                 path.join(generate_path, "texts", `${language}.lang`), 
