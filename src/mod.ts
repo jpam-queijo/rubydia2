@@ -33,8 +33,9 @@ export abstract class Mod {
     private translations: ModTranslation  = {items: {}, keys: {}, languages: []};
 
     public addItem(item: Item): void {
-        if (this.items[getItemFullID(item)]) throw new Error(`Item with ID:"${getItemFullID(item)}" already exists.`);
-        this.items[getItemFullID(item)] = item;
+        const mod_id = this.getModID();
+        if (this.items[getItemFullID(mod_id, item)]) throw new Error(`Item with ID:"${getItemFullID(mod_id, item)}" already exists.`);
+        this.items[getItemFullID(mod_id, item)] = item;
 
         if (!this.getItemTranslation(item, 'en_US')) {
             this.setItemTranslation(item, 'en_US', item.name);
@@ -69,7 +70,7 @@ export abstract class Mod {
 
     public setItemTranslation(item: Item, language: MinecraftLanguage, translation: string): void {
         this.addLanguageToTranslations(language);
-        const itemID = getItemFullID(item);
+        const itemID = getItemFullID(this.getModID(), item);
         if (!this.translations.items[itemID]) {
             this.translations.items[itemID] = {};
         }
@@ -87,7 +88,7 @@ export abstract class Mod {
     }
 
     public removeItemTranslation(item: Item, language: MinecraftLanguage): void {
-        delete this.translations.items[getItemFullID(item)][language];
+        delete this.translations.items[getItemFullID(this.getModID(), item)][language];
     }
 
     public removeKeyTranslation(key: string, language: MinecraftLanguage): void {
@@ -95,7 +96,7 @@ export abstract class Mod {
     }
 
     public getAllTranslationsForItem(item: Item): Partial<Record<MinecraftLanguage, string>> {
-        return this.translations.items[getItemFullID(item)];
+        return this.translations.items[getItemFullID(this.getModID(), item)];
     }
 
     public getAllTranslationsForKey(key: string): Partial<Record<MinecraftLanguage, string>> {
@@ -103,7 +104,7 @@ export abstract class Mod {
     }
 
     public getItemTranslation(item: Item, language: MinecraftLanguage): string | undefined {
-        const itemID = getItemFullID(item);
+        const itemID = getItemFullID(this.getModID(), item);
 
         if (!this.translations.items[itemID]) {
             this.translations.items[itemID] = {};

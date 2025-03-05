@@ -11,11 +11,11 @@ export class FabricJavaParser {
         return file;
     }
 
-    static parseModItems(file: string, items: Item[]): string {
+    static parseModItems(file: string, items: Item[], mod_id: string): string {
         let items_java: string = "";
 
         for (const item of items) {
-            items_java += FabricItemGenerator.generateItemJava(item);
+            items_java += FabricItemGenerator.generateItemJava(item, mod_id);
         }
 
         file = file.replaceAll("${RUBYDIA2_MOD_ITEMS_REGISTER}", items_java);

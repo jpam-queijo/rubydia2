@@ -1,5 +1,5 @@
 import { BaseModGenerator } from "../mod_generator";
-import { Mod, type ModInfo, type ModTranslation, type Translation } from "../mod";
+import { Mod, type ModInfo, type ModTranslation } from "../mod";
 import { type BedrockManifest, type BedrockUUIDs } from "./bedrock_manifest";
 import { generateOrGetUUIDs, modInfoToManifest } from "./bedrock_utils";
 import fs from "fs-extra";
@@ -11,6 +11,7 @@ import type { Item } from "../item";
 import { BedrockItemGenerator, defaultItemIcon } from "./bedrock_item";
 import { BedrockTranslationGenerator } from "./translation_generator";
 import type { MinecraftLanguage } from "../language";
+import { ModUtils } from "../java/modUtils";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -137,7 +138,7 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(generate_path);
 
         this.generateBasePack(mod.modInfo, generate_path, 'behavior_pack', mod.getAllLanguages(), uuids);
-        this.generateItemsBehavior(mod.getItems(), generate_path);
+        this.generateItemsBehavior(mod.getItems(), mod.getModID(), generate_path);
         this.generateTranslations(mod.modInfo, 'behavior_pack', mod.getAllModTranslations(), generate_path);
 
         console.log("[rubydia2] Done generating behavior pack.");
@@ -177,7 +178,7 @@ export class BedrockModGenerator extends BaseModGenerator {
 
         fs.writeJSONSync(
             path.join(generate_path, "textures", "item_texture.json"), 
-            BedrockItemGenerator.generateItemTextureJSON(this.getResourcePackName(mod_info),items)
+            BedrockItemGenerator.generateItemTextureJSON(this.getResourcePackName(mod_info), ModUtils.getModID(mod_info), items)
         );
 
         console.log("[rubydia2] Done generating items resources.");
@@ -215,7 +216,7 @@ export class BedrockModGenerator extends BaseModGenerator {
         console.log("[rubydia2] Done Generating translations");
     }
 
-    public static generateItemsBehavior(items: Item[], generate_path: string): void {
+    public static generateItemsBehavior(items: Item[], mod_id: string, generate_path: string): void {
         console.log("[rubydia2] Generating items behavior...");
 
         fs.ensureDirSync(path.join(generate_path, "items")); // Ensuring that Items folder exists
@@ -223,7 +224,7 @@ export class BedrockModGenerator extends BaseModGenerator {
         items.forEach(item => {
             fs.writeJSONSync(
                 path.join(generate_path, "items", `${item.id}.json`), 
-                BedrockItemGenerator.generateItemJSON(item)
+                BedrockItemGenerator.generateItemJSON(mod_id, item)
             );
         });
 

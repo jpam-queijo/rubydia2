@@ -78,8 +78,8 @@ export class FabricModGenerator extends BaseModGenerator {
         console.log("[rubydia2] Done generating translations.");
         
         console.log("[rubydia2] Generating Item Models");
-        JavaItemUtils.generateModels(mod_items, generate_path, mod.modInfo);
-        JavaItemUtils.generateItemModelDescription(mod_items, generate_path);
+        JavaItemUtils.generateModels(mod_items, mod.modInfo, generate_path);
+        JavaItemUtils.generateItemModelDescription(mod_items, generate_path, mod.modInfo);
         console.log("[rubydia2] Done generating Item Models.");
         
         console.log("[rubydia2] Copying Item Textures");
@@ -212,7 +212,7 @@ export class FabricModGenerator extends BaseModGenerator {
         let file_java = fs.readFileSync(mod_items_filepath, "utf-8");
         file_java = FabricJavaParser.parseModInfo(file_java, mod_info);
 
-        const items_java = FabricJavaParser.parseModItems(file_java, items);
+        const items_java = FabricJavaParser.parseModItems(file_java, items, ModUtils.getModID(mod_info));
 
         const items_folder = path.join(ModUtils.getJavaSrcFolder(output_path), 
         ModUtils.getModPackage(mod_info).replaceAll(".", path.sep), "item");
