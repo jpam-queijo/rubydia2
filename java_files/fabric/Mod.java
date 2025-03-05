@@ -3,6 +3,8 @@
 
 package ${RUBYDIA2_MOD_PACKAGE};
 
+${IF_RUBYDIA2_MOD_ITEMS} import ${RUBYDIA2_MOD_PACKAGE}.item.ModItems;
+
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
@@ -15,7 +17,8 @@ public class ${RUBYDIA2_MOD_CLASS_NAME} implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		LOGGER.info("Hello From Rubydia2 Mod: {}!", MOD_ID);
 
-		LOGGER.info("Hello From Rubydia2: {}!", MOD_ID);
+		${IF_RUBYDIA2_MOD_ITEMS} ModItems.registerModItems();
 	}
 }
