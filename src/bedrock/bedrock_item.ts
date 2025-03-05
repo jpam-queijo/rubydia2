@@ -13,6 +13,7 @@ export interface BedrockItem {
         components: {
             "minecraft:icon": string;
             "minecraft:max_stack_size"?: number;
+            "minecraft:rarity"?: "common" | "uncommon" | "rare" | "epic";
         }
     }
 }
@@ -37,7 +38,8 @@ export class BedrockItemGenerator {
                 },
                 components: {
                     "minecraft:icon": getItemFullID(mod_id, item),
-                    "minecraft:max_stack_size": item.max_stack_size
+                    "minecraft:max_stack_size": item.max_stack_size,
+                    "minecraft:rarity": item.rarity
                 }
             },
         }

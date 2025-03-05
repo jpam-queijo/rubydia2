@@ -4,6 +4,7 @@ export interface Item {
     namespace?: string; // Item Identifier Namespace
     texture?: string;
     max_stack_size?: number;
+    rarity?: "common" | "uncommon" | "rare" | "epic";
 }
 
 export function getItemFullID(mod_id: string, item: Item): string {

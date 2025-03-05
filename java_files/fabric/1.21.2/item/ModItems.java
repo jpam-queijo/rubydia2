@@ -15,6 +15,9 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 
+// Rarity
+import net.minecraft.util.Rarity;
+
 import org.slf4j.Logger;
 
 public class ModItems {
