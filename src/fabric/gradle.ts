@@ -1,8 +1,10 @@
 import { ModUtils } from "../java/modUtils";
-import { latestLoaderVersion, settingsByVersion, type FabricModSettings } from "./modSettings";
+import { settingsByVersion, type FabricModSettings } from "./modSettings";
 import path from "path";
 import fs from "fs-extra";
 import type { ModInfo } from "../mod";
+import * as shell from "shelljs";
+import os from "os";
 
 export class GradleUtilities {
     public static generateGradleFiles(output_path: string,
@@ -66,7 +68,7 @@ org.gradle.parallel=true
 
 minecraft_version=${settings.version}
 yarn_mappings=${settings.yarn_version}
-loader_version=${latestLoaderVersion}
+loader_version=${settings.loader_version}
 
 mod_version=${mod_info.version.join(".") || "1.0.0"}
 
@@ -92,5 +94,21 @@ fabric_version=${settings.fabric_version}
             path.join(ModUtils.getRubydia2Folder(), "gradle_files", "build.gradle"), "utf-8");
 
         return gradleBuild.replaceAll("${RUBYDIA2_JAVA_VERSION}", settings.java_version);
+    }
+
+    public static runGradleTask(taskName: string, modPath: string): void {
+        const original_path = shell.pwd();
+
+        shell.cd(path.join(shell.pwd(), modPath));
+        if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
+            throw new Error("[rubydia2] Gradlew not found.");
+        }
+        if (os.platform() === 'win32') {
+            shell.exec(`gradlew.bat ${taskName}`);
+        } else {
+            shell.exec(`./gradlew ${taskName}`);
+        }
+
+        shell.cd(original_path);
     }
 }

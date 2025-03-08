@@ -2,9 +2,7 @@ import type { Mod, ModInfo } from "../mod";
 import { BaseModGenerator } from "../mod_generator";
 import fs from "fs-extra";
 import path from "path";
-import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./mod";
-import * as shell from "shelljs";
-import os from "os";
+import { type FabricModInfo, type FabricModLoadingInfo, type FabricModMetadata } from "./fabricModData";
 import { settingsByVersion, type FabricModSettings, type FabricSupportedJavaVersion } from "./modSettings";
 import { FabricJavaParser } from "./javaCode";
 import type { Item } from "../item";
@@ -13,6 +11,7 @@ import { ModUtils } from "../java/modUtils";
 import { JavaItemUtils } from "../java/item/item";
 import { TranslationGenerator } from "../java/translationGenerator";
 import { GradleUtilities } from "./gradle";
+import { FabricModUtils } from "./fabricModUtils";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -32,7 +31,7 @@ export class FabricModGenerator extends BaseModGenerator {
 
         fs.ensureDirSync(generate_path);
         GradleUtilities.generateGradleFiles(generate_path, mod.modInfo, mod_fabric_settings);
-        this.generateModFabricFiles(mod.modInfo, generate_path);
+        FabricModUtils.generateModFabricFiles(mod.modInfo, generate_path);
 
         // Main file structure
         const java_src_folder: string = ModUtils.getJavaSrcFolder(generate_path);
@@ -98,16 +97,7 @@ export class FabricModGenerator extends BaseModGenerator {
         }
 
         console.log("[rubydia2] Launching Fabric mod...");
-        shell.cd(path.join(shell.pwd(), ModUtils.getModGeneratePath(version, output_path)));
-        if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
-            throw new Error("[rubydia2] Gradlew not found.");
-        }
-
-        if (os.platform() === 'win32') {
-            shell.exec(`gradlew.bat runClient`);
-        } else {
-            shell.exec(`./gradlew runClient`);
-        }
+        GradleUtilities.runGradleTask("runClient", ModUtils.getModGeneratePath(version, output_path));
     }
 
     public static generateJar(mod: Mod, version?: FabricSupportedJavaVersion, output_path?: string): void {
@@ -143,19 +133,7 @@ export class FabricModGenerator extends BaseModGenerator {
     public static buildGeneratedMod(mod_path: string): void {
         console.log("[rubydia2] Building generated mod...");
 
-        const original_path = shell.pwd();
-
-        shell.cd(path.join(shell.pwd(), mod_path));
-        if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
-            throw new Error("[rubydia2] Gradlew not found.");
-        }
-        if (os.platform() === 'win32') {
-            shell.exec(`gradlew.bat build`);
-        } else {
-            shell.exec(`./gradlew build`);
-        }
-
-        shell.cd(original_path);
+        GradleUtilities.runGradleTask("build", mod_path);
 
         console.log("[rubydia2] Done building generated mod.");
     }
@@ -173,48 +151,6 @@ export class FabricModGenerator extends BaseModGenerator {
         fs.ensureDirSync(path.join(java_package, "mixin"));
         fs.ensureDirSync(assetsFolder);
         console.log("[rubydia2] Done Generating Mod File Structure...");
-    }
-
-    public static generateModFabricFiles(mod_info: ModInfo, output_path: string) {
-        console.log("[rubydia2] Generating Fabric Files...");
-
-
-        fs.ensureDirSync(path.join(output_path, "src", "main", "resources"));
-        
-        const json_path: string = path.join(output_path, "src", "main", "resources", "fabric.mod.json");
-
-        fs.writeJSONSync(json_path, this.generateFabricModMetadataJSON(mod_info));
-
-        console.log("[rubydia2] Done generating Fabric files.");
-    }
-
-    public static generateFabricModMetadataJSON(mod_info: ModInfo) {
-        const fabric_mod_info: FabricModInfo = {
-            schemaVersion: 1,
-            id: ModUtils.getModID(mod_info),
-            version: "${version}"
-        };
-
-        const fabric_mod_metadata: FabricModMetadata = {
-            name: mod_info.name,
-            description: mod_info.description,
-            icon: `assets/${ModUtils.getModID(mod_info)}/icon.png`,
-            authors: mod_info.authors,
-            contact: {
-                homepage: mod_info.homepage
-            },
-            license: mod_info.license
-        }
-
-        const fabric_mod_loading_info: FabricModLoadingInfo = {
-            environment: "*",
-            entrypoints: {
-                main: [ `${ModUtils.getModPackage(mod_info)}.${ModUtils.getModClassName(mod_info)}`]
-            },
-            // no mixins for now
-        }
-        
-        return {...fabric_mod_info, ...fabric_mod_metadata, ...fabric_mod_loading_info};
     }
 
     public static generateModItems(items: Item[], mod_info: ModInfo, output_path: string, settings?: FabricModSettings): void {
