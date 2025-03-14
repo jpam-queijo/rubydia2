@@ -5,14 +5,18 @@ import { ModUtils } from "../java/modUtils";
 import type { FabricModSettings } from "./modSettings";
 
 export class FabricJavaParser {
-    static parseModInfo(file: string, mod_info: ModInfo): string {
+    public static addJavaFiles(path: string) {
+
+    }
+
+    public static parseModInfo(file: string, mod_info: ModInfo): string {
         file = file.replaceAll("${RUBYDIA2_MOD_PACKAGE}", ModUtils.getModPackage(mod_info));
         file = file.replaceAll("${RUBYDIA2_MOD_ID}", ModUtils.getModID(mod_info));
         file = file.replaceAll("${RUBYDIA2_MOD_CLASS_NAME}", ModUtils.getModClassName(mod_info));
         return file;
     }
 
-    static parseModItems(file: string, items: Item[], mod_id: string, version?: FabricModSettings): string {
+    public static parseModItems(file: string, items: Item[], mod_id: string, version?: FabricModSettings): string {
         let items_java: string = "";
 
         for (const item of items) {
