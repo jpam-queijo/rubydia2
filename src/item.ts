@@ -4,7 +4,20 @@ export interface Item {
     namespace?: string; // Item Identifier Namespace
     texture?: string;
     max_stack_size?: number;
-    rarity?: "common" | "uncommon" | "rare" | "epic";
+    rarity?: Rarity;
+}
+
+export type Rarity = "common" | "uncommon" | "rare" | "epic";
+
+/*export*/ abstract class AdvancedItem implements Item {
+    abstract name: string;
+    abstract id: string;
+    namespace?: string | undefined;
+    texture?: string | undefined;
+    max_stack_size?: number | undefined;
+    rarity?: Rarity | undefined;
+    
+    // for the future when logical coding its implemented
 }
 
 export function getItemFullID(mod_id: string, item: Item): string {

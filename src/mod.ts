@@ -16,8 +16,8 @@ export interface Translation {
 
 export interface ModInfo {
     name: string;
-    modid?: string;
     version: Version;
+    modid?: string;
     description?: string;
     icon?: string;
     authors?: string[];

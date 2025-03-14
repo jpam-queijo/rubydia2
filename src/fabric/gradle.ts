@@ -10,7 +10,6 @@ export class GradleUtilities {
     public static generateGradleFiles(output_path: string,
         mod_info: ModInfo, settings?: FabricModSettings): void {
         ///////////////////// GRADLE FILES GENERATION ///////////////////////////
-        console.log("[rubydia2] Generating gradle files...");
 
         const gradleFilesFolder: string = path.join(ModUtils.getRubydia2Folder(), "gradle_files");
         
@@ -52,7 +51,6 @@ export class GradleUtilities {
         }
         fs.copySync(path.join(gradleFilesFolder, "gradle"), path.join(output_path, "gradle"));
 
-        console.log("[rubydia2] Done generating gradle files.");
     }
 
 

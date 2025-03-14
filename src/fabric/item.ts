@@ -23,7 +23,10 @@ export class FabricItemGenerator {
 
         // Max Stack Size
         if (item.max_stack_size) {
-            item_settings_modifiers += `.maxCount(${item.max_stack_size})`;
+            if (item.max_stack_size > 64 || item.max_stack_size < 1 || Number.isNaN(item.max_stack_size)) {
+                throw new Error("Stack Size should be a number in the range: 0 < Max Stack Size < 64");
+            }
+            item_settings_modifiers += `.maxCount(${Math.trunc(item.max_stack_size)})`;
         }
 
         // Rarity
