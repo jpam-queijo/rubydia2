@@ -47,8 +47,13 @@ export class FabricModGenerator extends BaseModGenerator {
         // Mod Java File
         this.log("Generating Mod Entrypoint Class...", version);
 
-        let mod_java_file: string = fs.readFileSync(
-            path.join(rubydia2Folder, "java_files", "fabric",  "Mod.java"), "utf-8");
+        const modJavaFileDir = path.join(rubydia2Folder, "java_files", "fabric",  "Mod.java");
+
+        if (!fs.existsSync(modJavaFileDir)) {
+            throw new Error("No Mod Entrypoint Java File in the rubydia2 directory.");
+        }
+
+        let mod_java_file: string = fs.readFileSync(modJavaFileDir, "utf-8");
 
         mod_java_file = FabricJavaParser.parseModInfo(mod_java_file, mod.modInfo);
 
@@ -168,6 +173,11 @@ export class FabricModGenerator extends BaseModGenerator {
         if (isVersionNewerThan(mcVersion, "1.21.2") || mcVersion === "1.21.2") {
             mod_items_filepath = path.join(rubydia2Folder, "java_files", "fabric", "1.21.2", "item", "ModItems.java");
         }
+
+        if (!fs.existsSync(mod_items_filepath)) {
+            throw new Error("No Item Java File in the rubydia2 directory.");
+        }
+
         
         let file_java = fs.readFileSync(mod_items_filepath, "utf-8");
         file_java = FabricJavaParser.parseModInfo(file_java, mod_info);

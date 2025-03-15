@@ -98,6 +98,9 @@ fabric_version=${settings.fabric_version}
         const original_path = shell.pwd();
 
         shell.cd(path.join(shell.pwd(), modPath));
+
+        shell.chmod("+x", "gradlew");
+
         if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
             throw new Error("[rubydia2] Gradlew not found.");
         }
