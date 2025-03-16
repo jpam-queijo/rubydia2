@@ -10,7 +10,10 @@ export class BedrockTranslationGenerator {
             for (const [tr_language, translation] of Object.entries(translations)) {
                 if (!(translation && tr_language === language)) continue;
 
-                translation_file += `item.${item_id}=${translation}\n`;
+                let new_translation: string = translation;
+                if (translation === undefined) new_translation = "";
+
+                translation_file += `item.${item_id}=${new_translation}\n`;
             }
         });
 
