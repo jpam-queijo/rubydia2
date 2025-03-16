@@ -99,14 +99,13 @@ fabric_version=${settings.fabric_version}
 
         shell.cd(path.join(shell.pwd(), modPath));
 
-        shell.chmod("+x", "gradlew");
-
         if (!shell.test("-f", "gradlew") || !shell.test("-f", "gradlew.bat")) {
             throw new Error("[rubydia2] Gradlew not found.");
         }
         if (os.platform() === 'win32') {
             shell.exec(`gradlew.bat ${taskName}`);
         } else {
+            shell.chmod("+x", "gradlew");
             shell.exec(`./gradlew ${taskName}`);
         }
 
