@@ -91,10 +91,13 @@ export class FabricModGenerator extends BaseModGenerator {
         this.log("Generating translations...", version);
         TranslationGenerator.generateAllTranslations(mod.modInfo, mod.getAllItemTranslations(), mod.getAllLanguages(), generate_path);
         
-        this.log("Generating Item Models", version);
+        this.log("Generating Item Models...", version);
         JavaItemUtils.generateModels(mod_items, mod.modInfo, generate_path);
-        
-        this.log("Copying Item Textures", version);
+
+        this.log("Generating Item Model Definitions...", version);
+        JavaItemUtils.generateItemModelDescription(mod_items, generate_path, mod.modInfo);
+
+        this.log("Copying Item Textures...", version);
         JavaItemUtils.copyItemTextures(mod_items, mod.modInfo, generate_path);
 
         this.log("Done. Generated Fabric mod.", version);
