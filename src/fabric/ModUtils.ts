@@ -1,7 +1,7 @@
 import type { ModInfo } from "../mod";
 import path from "path";
 import fs from "fs-extra";
-import type { FabricModInfo, FabricModLoadingInfo, FabricModMetadata } from "./fabricModData";
+import type { FabricModInfo, FabricModLoadingInfo, FabricModMetadata } from "./ModData";
 import { ModUtils } from "../java/modUtils";
 
 export class FabricModUtils {

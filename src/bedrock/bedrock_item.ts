@@ -54,7 +54,7 @@ export class BedrockItemGenerator {
         items.forEach(item => {
             items_json.texture_data[getItemFullID(mod_id, item)] = {
                 textures: `textures/items/${path.parse(item.texture || defaultItemIcon).name}`
-            } 
+            }
         });
         
         return items_json;

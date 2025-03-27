@@ -12,6 +12,7 @@ import { BedrockItemGenerator, defaultItemIcon } from "./bedrock_item";
 import { BedrockTranslationGenerator } from "./translation_generator";
 import type { MinecraftLanguage } from "../language";
 import { ModUtils } from "../java/modUtils";
+import util from "node:util";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -21,7 +22,7 @@ export const defaultPackIcon: string = path.join(rubydia2Folder, "assets", "defa
 
 export class BedrockModGenerator extends BaseModGenerator {
     public static override generate(mod: Mod, output_path?: string): void {
-        console.log("[rubydia2] Generating Bedrock mod...");
+        this.log("Generating Bedrock addon...");
 
         const uuids = generateOrGetUUIDs();
 
@@ -34,13 +35,15 @@ export class BedrockModGenerator extends BaseModGenerator {
         ////// Generating Behavior Pack(BP)
         this.generateBehaviorPack(mod, uuids, bp_path);
 
-        console.log("[rubydia2] Done generating Bedrock mod.");
+        this.log("Done. Generated Bedrock addon.");
     }
     public static override generateToPath(mod: Mod, path: string): void {
         this.generate(mod, path);
     }
 
     public static generateResourcePackFromMod(mod: Mod, path: string): void {
+        this.log("Generating Resource Pack...");
+
         if (!path) {
             path = "./build/resource_packs";
         }
@@ -48,10 +51,14 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(path);
 
         this.generateResourcePack(mod, generateOrGetUUIDs(), path);
+
+        this.log("Done. Generated Resource Pack");
         
     }
 
     public static generateBehaviorPackFromMod(mod: Mod, path: string): void {
+        this.log("Generating Behavior Pack...");
+
         if (!path) {
             path = "./build/behavior_packs";
         }
@@ -59,11 +66,14 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(path);
 
         this.generateBehaviorPack(mod, generateOrGetUUIDs(), path);
+
+        this.log("Done. Generated Behavior Pack");
     }
 
     public static override generateAndLaunch(mod: Mod): void {
         if (!(os.platform() === 'win32' && process.env.LOCALAPPDATA)) {
-            throw new Error("[rubydia2] Unsupported platform to launch game.");
+            this.error("Unsupported platform to launch game.");
+            return;
         }
 
         // Getting Minecraft Bedrock Path on windows
@@ -71,7 +81,7 @@ export class BedrockModGenerator extends BaseModGenerator {
                 "Packages", "Microsoft.MinecraftUWP_8wekyb3d8bbwe",
                 "LocalState", "games", "com.mojang");
 
-        // Generating mods
+        // Generating addon
         const rp_path = path.join(generate_path, "development_resource_packs", this.getResourcePackName(mod.modInfo));
         const bp_path = path.join(generate_path, "development_behavior_packs", this.getBehaviorPackName(mod.modInfo));
 
@@ -79,24 +89,24 @@ export class BedrockModGenerator extends BaseModGenerator {
         this.generateBehaviorPackFromMod(mod, bp_path);
 
         // Launching Minecraft
-        console.log("[rubydia2] Done generating. launching Minecraft.");
+        this.log("Done generating. launching Minecraft.");
         open("minecraft://");
     }
 
     public static generateAndCreateMcAddon(mod: Mod, output_path?: string, generate_path?: string): void {
         this.generate(mod, generate_path);
 
-        console.log("[rubydia2] Creating .mcaddon file...");
+        this.log("Creating .mcaddon file...");
 
         fs.ensureDirSync(output_path || "./dist/");
         const output_stream = fs.createWriteStream(path.join(output_path || "./dist/", `${mod.modInfo.name}.mcaddon`));
         
         const archive = archiver('zip');
         archive.on('warning', (err) => {
-            console.warn(`[rubydia2] While creating .mcaddon file: ${err}`)
+            this.warn(`While creating .mcaddon file: ${err}`)
         });
         archive.on('error', (err) => {
-            throw new Error(`[rubydia2] While creating .mcaddon file: ${err}`);
+            throw new Error(`While creating .mcaddon file: ${err}`);
         });
         
         archive.pipe(output_stream);
@@ -107,11 +117,10 @@ export class BedrockModGenerator extends BaseModGenerator {
         archive.directory(rp_path, this.getResourcePackName(mod.modInfo));
         archive.directory(bp_path,  this.getBehaviorPackName(mod.modInfo));
 
-        console.log("[rubydia2] Done Creating .mcaddon file.");
+        this.log("Done. Created .mcaddon file.");
     }
 
     public static generateResourcePack(mod: Mod, uuids: BedrockUUIDs, generate_path?: string): void {
-        console.log("[rubydia2] Generating resource pack...");
         if (!generate_path) {
             generate_path = "./build/";
             generate_path = path.join(generate_path, 'resource_packs');
@@ -120,15 +129,18 @@ export class BedrockModGenerator extends BaseModGenerator {
 
         fs.ensureDirSync(generate_path); // Ensuring that Resource Pack folder exists
 
+        this.log("Generating manifest.json and adding Addon Icon.");
         this.generateBasePack(mod.modInfo, generate_path, 'resource_pack', mod.getAllLanguages(), uuids);
+
+        this.log("Generating Item Resources.");
         this.generateItemsResources(mod.modInfo, mod.getItems(), generate_path);
+
+        this.log("Generating Translations.");
         this.generateTranslations(mod.modInfo, 'resource_pack', mod.getAllModTranslations(), generate_path);
 
-        console.log("[rubydia2] Done generating resource pack.");
     }
 
     public static generateBehaviorPack(mod: Mod, uuids: BedrockUUIDs, generate_path?: string): void {
-        console.log("[rubydia2] Generating behavior pack...");
         if (!generate_path) {
             generate_path = "./build/";
             generate_path = path.join(generate_path, 'behavior_packs');
@@ -137,16 +149,17 @@ export class BedrockModGenerator extends BaseModGenerator {
 
         fs.ensureDirSync(generate_path);
 
+        this.log("Generating manifest.json and adding Addon Icon.");
         this.generateBasePack(mod.modInfo, generate_path, 'behavior_pack', mod.getAllLanguages(), uuids);
+
+        this.log("Generating Item Behaviors.");
         this.generateItemsBehavior(mod.getItems(), mod.getModID(), generate_path);
+        this.log("Generating Translations.");
         this.generateTranslations(mod.modInfo, 'behavior_pack', mod.getAllModTranslations(), generate_path);
 
-        console.log("[rubydia2] Done generating behavior pack.");
     }
 
     public static generateBasePack(mod_info: ModInfo, gen_path: string, pack_type: PackType, languages: MinecraftLanguage[], uuids: BedrockUUIDs): void {
-        console.log("[rubydia2] Generating manifest.json and adding pack icon...");
-
         const modManifest: BedrockManifest = modInfoToManifest(mod_info, uuids[pack_type],
             pack_type === 'behavior_pack' ?  'data' : 'resources');
         
@@ -158,12 +171,9 @@ export class BedrockModGenerator extends BaseModGenerator {
             fs.copyFileSync(defaultPackIcon, path.join(gen_path, "pack_icon.png"));
         }
 
-        console.log("[rubydia2] Done generating base pack.");
     }
 
     public static generateItemsResources(mod_info: ModInfo, items: Item[], generate_path: string): void {
-        console.log("[rubydia2] Generating items resources...");
-        
         fs.ensureDirSync(path.join(generate_path, "textures", "items")); // Ensuring that Items folder exists
         fs.ensureDirSync(path.join(generate_path, "texts")); // Ensuring that Blocks folder exists
 
@@ -180,12 +190,9 @@ export class BedrockModGenerator extends BaseModGenerator {
             path.join(generate_path, "textures", "item_texture.json"), 
             BedrockItemGenerator.generateItemTextureJSON(this.getResourcePackName(mod_info), ModUtils.getModID(mod_info), items)
         );
-
-        console.log("[rubydia2] Done generating items resources.");
     }
 
     public static generateTranslations(mod_info: ModInfo, pack_type: PackType, mod_translations: ModTranslation, generate_path: string) {
-        console.log("[rubydia2] Generating translations...");
 
         fs.ensureDirSync(path.join(generate_path, "texts"));
 
@@ -212,12 +219,9 @@ export class BedrockModGenerator extends BaseModGenerator {
                 translation_file_contents
             );
         }
-
-        console.log("[rubydia2] Done Generating translations");
     }
 
     public static generateItemsBehavior(items: Item[], mod_id: string, generate_path: string): void {
-        console.log("[rubydia2] Generating items behavior...");
 
         fs.ensureDirSync(path.join(generate_path, "items")); // Ensuring that Items folder exists
 
@@ -228,7 +232,6 @@ export class BedrockModGenerator extends BaseModGenerator {
             );
         });
 
-        console.log("[rubydia2] Done generating items behavior.");
     }
 
     public static getResourcePackName(mod_info: ModInfo): string {
@@ -236,5 +239,21 @@ export class BedrockModGenerator extends BaseModGenerator {
     }
         public static getBehaviorPackName(mod_info: ModInfo): string {
         return `${mod_info.name} [BP]`;
+    }
+
+    public static log(msg: any) {
+        console.log(`${util.styleText("dim", "[LOG]")} [rubydia2] [Bedrock Addon Generator]: ${msg}`);
+    }
+
+    public static warn(msg: any, version?: string) {
+        console.warn(`${util.styleText("yellow", "[WARNING]")} [rubydia2] [Bedrock Addon Generator]: ${msg}`);
+    }
+
+    public static error(msg: any, version?: string) {
+        console.error(this.getErrorString(msg, version));
+    }
+
+    public static getErrorString(msg: any, version?: string) {
+        return `${util.styleText("red", "[ERROR]")} [rubydia2] [Bedrock Addon Generator]: ${msg}`;
     }
 }

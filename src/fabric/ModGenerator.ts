@@ -10,7 +10,7 @@ import { ModUtils } from "../java/modUtils";
 import { JavaItemUtils } from "../java/item/item";
 import { TranslationGenerator } from "../java/translationGenerator";
 import { GradleUtilities } from "./gradle";
-import { FabricModUtils } from "./fabricModUtils";
+import { FabricModUtils } from "./ModUtils";
 import util from "node:util";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
