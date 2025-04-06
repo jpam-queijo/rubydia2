@@ -33,3 +33,9 @@ export function toCamelCaseString(input: string): string {
 export function capitalizeFirstLetter(input: string): string {
     return input.charAt(0).toUpperCase() + input.slice(1);
 }
+
+export function isValidNamespaceID(input: string): boolean {
+  const re = /^[a-z0-9_.-]+$/;
+  
+  return re.test(input);
+}

@@ -1,3 +1,8 @@
+export interface Translatable {
+    getTranslationKey(): string | null;
+    setTranslationKey(newKey: string): void;
+}
+
 
 export type MinecraftLanguage = 
 "en_GB" |
