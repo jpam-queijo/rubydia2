@@ -1,6 +1,6 @@
 export interface Translatable {
-    getTranslationKey(): string | null;
-    setTranslationKey(newKey: string): void;
+    getTranslationKey(): string;
+    setTranslationKey(key: string): void;
 }
 
 

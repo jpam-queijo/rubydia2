@@ -27,6 +27,7 @@ export interface ModInfo {
 
 export abstract class Mod {
     abstract modInfo: ModInfo;
+    
 
     // Items
     private items: {[key: string]: Item} = {};
