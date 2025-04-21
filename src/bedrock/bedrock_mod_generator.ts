@@ -7,12 +7,13 @@ import path from "path";
 import os from "os";
 import open from "open";
 import archiver from "archiver";
-import type { Item } from "../item";
+import type { Item, ItemProperties } from "../item";
 import { BedrockItemGenerator, defaultItemIcon } from "./bedrock_item";
 import { BedrockTranslationGenerator } from "./translation_generator";
 import type { MinecraftLanguage } from "../language";
 import { ModUtils } from "../java/modUtils";
 import util from "node:util";
+import type { IdentifiablePlatformRegistry } from "../registry";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -133,7 +134,7 @@ export class BedrockModGenerator extends BaseModGenerator {
         this.generateBasePack(mod.modInfo, generate_path, 'resource_pack', mod.getAllLanguages(), uuids);
 
         this.log("Generating Item Resources.");
-        this.generateItemsResources(mod.modInfo, mod.getItems(), generate_path);
+        this.generateItemsResources(mod.modInfo, mod.itemRegistry, generate_path);
 
         this.log("Generating Translations.");
         this.generateTranslations(mod.modInfo, 'resource_pack', mod.getAllModTranslations(), generate_path);
@@ -153,7 +154,7 @@ export class BedrockModGenerator extends BaseModGenerator {
         this.generateBasePack(mod.modInfo, generate_path, 'behavior_pack', mod.getAllLanguages(), uuids);
 
         this.log("Generating Item Behaviors.");
-        this.generateItemsBehavior(mod.getItems(), mod.getModID(), generate_path);
+        this.generateItemsBehavior(mod.itemRegistry, mod.getModID(), generate_path);
         this.log("Generating Translations.");
         this.generateTranslations(mod.modInfo, 'behavior_pack', mod.getAllModTranslations(), generate_path);
 
@@ -173,11 +174,11 @@ export class BedrockModGenerator extends BaseModGenerator {
 
     }
 
-    public static generateItemsResources(mod_info: ModInfo, items: Item[], generate_path: string): void {
+    public static generateItemsResources(mod_info: ModInfo, items: IdentifiablePlatformRegistry<Item>, generate_path: string): void {
         fs.ensureDirSync(path.join(generate_path, "textures", "items")); // Ensuring that Items folder exists
         fs.ensureDirSync(path.join(generate_path, "texts")); // Ensuring that Blocks folder exists
 
-        items.forEach(item => {
+        items.forEachInBedrock(item => {
             const itemTextureFile: string = item.texture || defaultItemIcon;
             if (fs.existsSync(itemTextureFile)) {
                 fs.copyFileSync(itemTextureFile, path.join(generate_path, "textures", "items",  path.parse(itemTextureFile).base));
@@ -221,13 +222,14 @@ export class BedrockModGenerator extends BaseModGenerator {
         }
     }
 
-    public static generateItemsBehavior(items: Item[], mod_id: string, generate_path: string): void {
+    public static generateItemsBehavior(items: IdentifiablePlatformRegistry<Item>, mod_id: string, generate_path: string): void {
 
         fs.ensureDirSync(path.join(generate_path, "items")); // Ensuring that Items folder exists
-
-        items.forEach(item => {
+        
+        items.forEachInBedrock(item => {
+            const itemPathID = item.getID().getPath();
             fs.writeJSONSync(
-                path.join(generate_path, "items", `${item.id}.json`), 
+                path.join(generate_path, "items", `${itemPathID}.json`), 
                 BedrockItemGenerator.generateItemJSON(mod_id, item)
             );
         });

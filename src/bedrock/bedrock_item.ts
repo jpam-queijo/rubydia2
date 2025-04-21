@@ -1,5 +1,6 @@
-import { getItemFullID, type Item } from "../item";
+import { Item, type ItemProperties } from "../item";
 import path from "path";
+import type { IdentifiablePlatformRegistry } from "../registry";
 
 
 export const defaultItemIcon: string = path.join(import.meta.dirname, "..", "..", "assets", "queijo.png");
@@ -30,29 +31,33 @@ export interface BedrockItemTextures {
 
 export class BedrockItemGenerator {
     public static generateItemJSON(mod_id: string, item: Item): BedrockItem {
+        const itemFullID = item.getID().getIdString();
         return {
             format_version: "1.21.40",
             "minecraft:item": {
                 description: {
-                    identifier: getItemFullID(mod_id, item),
+                    identifier: itemFullID,
                 },
                 components: {
-                    "minecraft:icon": getItemFullID(mod_id, item),
-                    "minecraft:max_stack_size": item.max_stack_size,
+                    "minecraft:icon": itemFullID,
+                    "minecraft:max_stack_size": item.maxStackSize,
                     "minecraft:rarity": item.rarity
                 }
             },
         }
     }
 
-    public static generateItemTextureJSON(pack_name: string, mod_id: string, items: Item[]): BedrockItemTextures {
+    public static generateItemTextureJSON(pack_name: string, mod_id: string, items: IdentifiablePlatformRegistry<Item>): BedrockItemTextures {
         let items_json: BedrockItemTextures = {
             resource_pack_name: pack_name,
             texture_name: "atlas.items",
             texture_data: {}
         }
-        items.forEach(item => {
-            items_json.texture_data[getItemFullID(mod_id, item)] = {
+
+        
+        items.forEachInBedrock(item => {
+            const itemFullID = item.getID().getIdString();
+            items_json.texture_data[itemFullID] = {
                 textures: `textures/items/${path.parse(item.texture || defaultItemIcon).name}`
             }
         });

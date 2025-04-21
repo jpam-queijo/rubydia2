@@ -4,9 +4,13 @@ export interface Registry<T> {
     register(object: T, identifier: string): void;
     get(id: string): T | undefined;
     getAll(): T[];
-    unregister(id: string): void;
-    forEach(callbackfn: (value: T) => void): void;
+    unregister(id: string): boolean;
+    forEach(callbackfn: (value: T, id: string) => void): void;
     has(id: string): boolean;
+    entries(): Generator<[string | Identifier, T], void, unknown>;
+    values(): Generator<T, void, unknown>;
+    keys(): Generator<string | Identifier, void, unknown>;
+    size: number;
 }
 
 export class GenericRegistry<T> implements Registry<T> {
@@ -24,15 +28,15 @@ export class GenericRegistry<T> implements Registry<T> {
         return this.storage.get(id);
     }
     
-    unregister(id: string): void {
+    unregister(id: string): boolean {
         if (!(this.has(id))) {
             throw new Error("Attempted to unregister nonexistent ID Object");
         }
         
-        this.storage.delete(id);
+        return this.storage.delete(id);
     }
     
-    forEach(callbackfn: (value: T) => void): void {
+    forEach(callbackfn: (value: T, id: string) => void): void {
         this.storage.forEach(callbackfn);
     }
     
@@ -43,172 +47,373 @@ export class GenericRegistry<T> implements Registry<T> {
     getAll(): T[] {
         return this.storage.values().toArray();
     }
+
+    *values(): Generator<T, void, unknown> {
+        yield* this.storage.values();
+    }
+
+    *keys(): Generator<string | Identifier, void, unknown> {
+        yield* this.storage.keys();
+    }
+    
+    *entries(): Generator<[string | Identifier, T], void, unknown> {
+        yield* this.storage.entries();
+    }
+
+    public get size(): number {
+        return this.storage.size;
+    }
 }
 
-export class CrossRegistry<T> extends GenericRegistry<T> {
-    private bedrockOnlyStorage: Map<string, T> = new Map<string, T>();
-    private javaOnlyStorage: Map<string, T> = new Map<string, T>();
+export class PlatformRegistry<T> {
 
-    register(object: T, id: string) {
-        /*
-        if (this.bedrockOnlyStorage.has(id) || this.javaOnlyStorage.has(id)) {
-            throw new Error("ID already exists on Bedrock/Java only registry.");
+    // Registries
+    private sharedStorage: Registry<T>;
+    private bedrockStorage: Registry<T>;
+    private javaStorage: Registry<T>;
+
+    constructor(sharedRegistry: Registry<T> = new GenericRegistry<T>(),
+         bedrockRegistry: Registry<T> = new GenericRegistry<T>(),
+          javaRegistry: Registry<T> = new GenericRegistry<T>()) {
+        this.sharedStorage = sharedRegistry;
+        this.bedrockStorage = bedrockRegistry;
+        this.javaStorage = javaRegistry;
+    }
+
+    /* Register */
+
+    registerShared(object: T, id: string): void {
+        this.sharedStorage.register(object, id);
+    }
+
+    registerForJava(object: T, id: string): void {
+        this.javaStorage.register(object, id);
+    }
+
+    registerForBedrock(object: T, id: string): void {
+        this.bedrockStorage.register(object, id);
+    }
+
+    /* Get */
+
+    getShared(id: string): T | undefined {
+        return this.sharedStorage.get(id);
+    }
+
+    getForBedrock(id: string): T | undefined {
+        return this.bedrockStorage.get(id) || this.sharedStorage.get(id);
+    }
+
+    getForJava(id: string): T | undefined {
+        return this.javaStorage.get(id) || this.sharedStorage.get(id);
+    }
+
+    getBedrockSpecific(id: string): T | undefined {
+        return this.bedrockStorage.get(id);
+    }
+
+    getJavaSpecific(id: string): T | undefined {
+        return this.javaStorage.get(id);
+    }
+
+    /* Unregister */
+
+    unregisterShared(id: string): boolean {
+        return this.sharedStorage.unregister(id);
+    }
+
+    unregisterBedrock(id: string): boolean {
+        return this.bedrockStorage.unregister(id);
+    }
+
+    unregisterJava(id: string): boolean {
+        return this.javaStorage.unregister(id);
+    }
+
+    unregisterPlatformWide(id: string): boolean {
+        const deletedShared = this.sharedStorage.unregister(id);
+        const deletedBedrock = this.bedrockStorage.unregister(id);
+        const deletedJava = this.javaStorage.unregister(id);
+        
+        return deletedShared || deletedBedrock || deletedJava;
+    }
+
+    /* For each */
+
+    forEachShared(callbackfn: (value: T, key: string) => void): void {
+        this.sharedStorage.forEach(callbackfn);
+    }
+    
+    forEachBedrockSpecific(callbackfn: (value: T, key: string) => void): void {
+        this.bedrockStorage.forEach(callbackfn);
+    }
+
+    forEachJavaSpecific(callbackfn: (value: T, key: string) => void): void {
+        this.javaStorage.forEach(callbackfn);
+    }
+
+    forEachInBedrock(callbackfn: (value: T, key: string) => void) {
+        for (let key of this.effectiveBedrockKeys()) {
+            if (!(typeof key === "string")) {
+                key = key.getIdString();
+            }
+
+            let value = this.getForBedrock(key);
+
+            if (!value) {
+                continue;
+            }
+
+            callbackfn(value, key);
+
         }
-        */
-
-        super.register(object, id);
-
     }
 
-    registerJava(object: T, id: string): void {
-        if (this.javaOnlyStorage.has(id)) {
-            throw new Error("Another object with this key already registered in this registry.");
+    forEachInJava(callbackfn: (value: T, key: string) => void) {
+        for (let key of this.effectiveJavaKeys()) {
+            if (!(typeof key === "string")) {
+                key = key.getIdString();
+            }
+
+            let value = this.getForJava(key);
+
+            if (!value) {
+                continue;
+            }
+
+            callbackfn(value, key);
+
+        }
+    }
+
+
+    /* Has */
+
+    hasShared(id: string): boolean {
+        return this.sharedStorage.has(id);
+    }
+
+    hasForBedrock(id: string): boolean {
+        return this.bedrockStorage.has(id) || this.sharedStorage.has(id);
+    }
+
+    hasForJava(id: string): boolean {
+        return this.javaStorage.has(id) || this.sharedStorage.has(id);
+    }
+
+    hasBedrockSpecific(id: string): boolean {
+        return this.bedrockStorage.has(id);
+    }
+
+    hasJavaSpecific(id: string): boolean {
+        return this.javaStorage.has(id);
+    }
+
+    /* Size */
+    get sharedSize(): number { return this.sharedStorage.size; }
+    get bedrockSpecificSize(): number { return this.bedrockStorage.size; }
+    get javaSpecificSize(): number { return this.javaStorage.size; }
+
+    /* Entries */
+    
+    *sharedEntries(): Generator<[string | Identifier, T], void, unknown> { yield* this.sharedStorage.entries(); }
+    *bedrockSpecificEntries(): Generator<[string | Identifier, T], void, unknown> { yield* this.bedrockStorage.entries(); }
+    *javaSpecificEntries(): Generator<[string | Identifier, T], void, unknown> { yield* this.javaStorage.entries(); }
+
+    /* Keys */
+    
+    *sharedKeys(): Generator<string | Identifier, void, unknown> { yield* this.sharedStorage.keys(); }
+    *bedrockSpecificKeys(): Generator<string | Identifier, void, unknown> { yield* this.bedrockStorage.keys(); }
+    *javaSpecificKeys(): Generator<string | Identifier, void, unknown> { yield* this.javaStorage.keys(); }
+    
+    /* Values */
+
+    *sharedValues(): Generator<T, void, unknown> { yield* this.sharedStorage.values(); }
+    *bedrockSpecificValues(): Generator<T, void, unknown> { yield* this.bedrockStorage.values(); }
+    *javaSpecificValues(): Generator<T, void, unknown> { yield* this.javaStorage.values(); }
+
+    /* Effective keys */
+
+    *effectiveBedrockKeys(): Generator<string | Identifier, void, unknown> {
+        const yielded = new Set<string>();
+
+        for (let key of this.bedrockStorage.keys()) {
+            if (!(typeof key === "string")) {
+                key = key.getIdString();
+            }
+
+            yield key;
+            yielded.add(key);
         }
 
-        this.javaOnlyStorage.set(id, object);
-    }
+        for (let key of this.sharedStorage.keys()) {
+            if (!(typeof key === "string")) {
+                key = key.getIdString();
+            }
 
-    registerBedrock(object: T, id: string): void {
-        if (this.bedrockOnlyStorage.has(id)) {
-            throw new Error("Another object with this key already registered in this registry.");
+            if (!yielded.has(key)) {
+                yield key;
+            }
         }
-
-        this.bedrockOnlyStorage.set(id, object);
     }
 
-    getBedrock(id: string): T | undefined {
-        return this.bedrockOnlyStorage.get(id) || this.get(id);
-    }
+    *effectiveJavaKeys(): Generator<string | Identifier, void, unknown> {
+        const yielded = new Set<string>();
 
-    getJava(id: string): T | undefined {
-        return this.javaOnlyStorage.get(id) || this.get(id);
-    }
+        for (let key of this.javaStorage.keys()) {
+            if (!(typeof key === "string")) {
+                key = key.getIdString();
+            }
 
-    getOnlyBedrock(id: string): T | undefined {
-        return this.bedrockOnlyStorage.get(id);
-    }
-
-    getOnlyJava(id: string): T | undefined {
-        return this.javaOnlyStorage.get(id);
-    }
-
-    unregisterBedrock(id: string): void {
-        if (!(this.hasOnlyBedrock(id))) {
-            throw new Error("Attempted to unregister nonexistent ID Object in this registry");
+            yield key;
+            yielded.add(key);
         }
+        
+        for (let key of this.sharedStorage.keys()) {
+            if (!(typeof key === "string")) {
+                key = key.getIdString();
+            }
 
-        this.bedrockOnlyStorage.delete(id);
-    }
-
-    unregisterJava(id: string): void {
-        if (!(this.hasOnlyJava(id))) {
-            throw new Error("Attempted to unregister nonexistent ID Object in this registry");
+            if (!yielded.has(key)) {
+                yield key;
+            }
         }
-
-        this.javaOnlyStorage.delete(id);
-    }
-
-    forEachBedrock(callbackfn: (value: T) => void): void {
-        this.bedrockOnlyStorage.forEach(callbackfn);
-    }
-
-    forEachJava(callbackfn: (value: T) => void): void {
-        this.javaOnlyStorage.forEach(callbackfn);
-    }
-
-    hasOnlyBedrock(id: string): boolean {
-        return this.bedrockOnlyStorage.has(id);
-    }
-
-    hasOnlyJava(id: string): boolean {
-        return this.javaOnlyStorage.has(id);
-    }
-
-    getAllBedrock(): T[] {
-        return this.bedrockOnlyStorage.values().toArray();
-    }
-
-    getAllJava(): T[] {
-        return this.javaOnlyStorage.values().toArray();
     }
 }
 
 
 export class IdentifiableRegistry<T extends Identifiable> extends GenericRegistry<T> {
+    private _idToString(id: Identifier | string): string {
+        if (typeof id === "string") {
+            return Identifier.ofString(id).getIdString();
+        }
+        return id.getIdString();
+    }
+
     register(object: T): void {
         super.register(object, object.getID().getIdString());
     }
     
     get(id: Identifier | string): T | undefined {
-        if (typeof id === "string") {
-            return super.get(Identifier.ofString(id).getIdString());
-        }
-        return super.get(id.getIdString());
+        return super.get(this._idToString(id));
     }
 
-    unregister(id: Identifier | string): void {
-        if (typeof id === "string") {
-            return super.unregister(Identifier.ofString(id).getIdString());
+    unregister(id: Identifier | string): boolean {
+        return super.unregister(this._idToString(id));
+    }
+
+    has(id: Identifier | string): boolean {
+        return super.has(this._idToString(id));
+    }
+
+    *keys(): Generator<string | Identifier, void, unknown> {
+        for (const key of super.keys()) {
+            if (typeof key === "string") {
+                yield Identifier.ofString(key);
+            } else {
+                yield key;
+            }
         }
-        
-        super.unregister(id.getIdString());
+    }
+
+    *entries(): Generator<[string | Identifier, T], void, unknown> {
+        for (const entry of super.entries()) {
+            if (typeof entry[0] === "string") {
+                yield [Identifier.ofString(entry[0]), entry[1]];
+            } else {
+                yield entry;
+            }
+        }
     }
 }
 
-export class IdentifiableCrossRegistry<T extends Identifiable> extends CrossRegistry<T> {
-    register(object: T): void {
-        super.register(object, object.getID().getIdString());
+export class IdentifiablePlatformRegistry<T extends Identifiable> extends PlatformRegistry<T> {
+
+    constructor(sharedRegistry: IdentifiableRegistry<T> = new IdentifiableRegistry<T>,
+         bedrockRegistry: IdentifiableRegistry<T> = new IdentifiableRegistry<T>,
+          javaRegistry: IdentifiableRegistry<T> = new IdentifiableRegistry<T>) {
+
+        super(sharedRegistry, bedrockRegistry, javaRegistry);
     }
 
-    registerJava(object: T): void {
-        super.registerJava(object, object.getID().getIdString());
+    private _idToString(id: Identifier | string): string {
+        if (typeof id === "string") {
+            return Identifier.ofString(id).getIdString();
+        }
+        return id.getIdString();
+    }
+    
+    /* Register */
+
+    registerShared(object: T): void {
+        super.registerShared(object, object.getID().getIdString());
     }
 
     registerBedrock(object: T): void {
-        super.registerBedrock(object, object.getID().getIdString());
+        super.registerForBedrock(object, object.getID().getIdString());
     }
 
-    getBedrock(id: Identifier | string): T | undefined {
-        if (typeof id === "string") {
-            return super.getBedrock(Identifier.ofString(id).getIdString());
-        }
-        return super.getBedrock(id.getIdString());
+    registerJava(object: T): void {
+        super.registerForJava(object, object.getID().getIdString());
     }
 
-    getJava(id: Identifier | string): T | undefined {
-        if (typeof id === "string") {
-            return super.getJava(Identifier.ofString(id).getIdString());
-        }
-        return super.getJava(id.getIdString());
+    /* Get */
+
+    getShared(id: Identifier | string): T | undefined {
+        return super.getShared(this._idToString(id));
     }
 
-    getOnlyJava(id: Identifier | string): T | undefined {
-        if (typeof id === "string") {
-            return super.getJava(Identifier.ofString(id).getIdString());
-        }
-        return super.getJava(id.getIdString());
+    getForJava(id: Identifier | string): T | undefined {
+        return super.getForJava(this._idToString(id));
     }
 
-    getOnlyBedrock(id: Identifier | string): T | undefined {
-        if (typeof id === "string") {
-            return super.getOnlyBedrock(Identifier.ofString(id).getIdString());
-        }
-        return super.getOnlyBedrock(id.getIdString());
+    getForBedrock(id: Identifier | string): T | undefined {
+        return super.getForBedrock(this._idToString(id));
     }
 
-    unregisterBedrock(id: Identifier | string): void {
-        if (typeof id === "string") {
-            return super.unregisterBedrock(Identifier.ofString(id).getIdString());
-        }
-        
-        super.unregisterBedrock(id.getIdString());
+    getBedrockSpecific(id: Identifier | string): T | undefined {
+        return super.getBedrockSpecific(this._idToString(id));
     }
 
-    unregisterJava(id: Identifier | string): void {
-        if (typeof id === "string") {
-            return super.unregisterJava(Identifier.ofString(id).getIdString());
-        }
-        
-        super.unregisterJava(id.getIdString());
+    getJavaSpecific(id: Identifier | string): T | undefined {
+        return super.getJavaSpecific(this._idToString(id));
     }
+
+    /* Unregister */
+
+    unregisterBedrock(id: Identifier | string): boolean {
+        return super.unregisterBedrock(this._idToString(id));
+    }
+
+    unregisterJava(id: Identifier | string): boolean {
+        return super.unregisterJava(this._idToString(id));
+    }
+
+    unregisterShared(id: Identifier | string): boolean {
+        return super.unregisterPlatformWide(this._idToString(id));
+    }
+
+    unregisterPlatformWide(id: Identifier | string): boolean {
+        return super.unregisterPlatformWide(this._idToString(id));
+    }
+    
+    /* Has */
+
+    hasForBedrock(id: Identifier | string): boolean {
+        return super.hasForBedrock(this._idToString(id));
+    }
+
+    hasForJava(id: Identifier | string): boolean {
+        return super.hasForJava(this._idToString(id));
+    }
+
+    hasBedrockSpecific(id: Identifier | string): boolean {
+        return super.hasBedrockSpecific(this._idToString(id));
+    }
+
+    hasJavaSpecific(id: Identifier | string): boolean {
+        return super.hasJavaSpecific(this._idToString(id));
+    }
+
+
 }

@@ -12,6 +12,7 @@ import { TranslationGenerator } from "../java/translationGenerator";
 import { GradleUtilities } from "./gradle";
 import { FabricModUtils } from "./ModUtils";
 import util from "node:util";
+import type { IdentifiablePlatformRegistry } from "../registry";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -58,9 +59,9 @@ export class FabricModGenerator extends BaseModGenerator {
         mod_java_file = FabricJavaParser.parseModInfo(mod_java_file, mod.modInfo);
 
         // checking if mod has items if not then it don't need the item implementation code
-        mod_java_file = mod_java_file.replaceAll("${IF_RUBYDIA2_MOD_ITEMS}", (mod.getItems().length <= 0 ? "//" : ""));
+        mod_java_file = mod_java_file.replaceAll("${IF_RUBYDIA2_MOD_ITEMS}", ((mod.itemRegistry.sharedSize + mod.itemRegistry.javaSpecificSize) <= 0 ? "//" : ""));
 
-        // writing main.java
+        // writing mod entrypoint file
         fs.writeFileSync(path.join(java_package, `${ModUtils.getModClassName(mod.modInfo)}.java`), mod_java_file);
 
         // Mod Icon
@@ -81,24 +82,24 @@ export class FabricModGenerator extends BaseModGenerator {
         fs.copyFileSync(rubydia2_icon, path.join(assetsFolder, "rubydia2_icon.png"));
         
         // Items
-        if (mod.getItems().length > 0) {
+        if ((mod.itemRegistry.sharedSize + mod.itemRegistry.javaSpecificSize) > 0) {
             this.log("Generating Items code...", version);
-            this.generateModItems(mod.getItems(), mod.modInfo, generate_path, mod_fabric_settings);
+            this.generateModItems(mod.itemRegistry, mod.modInfo, generate_path, mod_fabric_settings);
         } else {
             this.log("No Items in to generate skipping Items generation...", version);
         }
-        const mod_items = mod.getItems();
+
         this.log("Generating translations...", version);
         TranslationGenerator.generateAllTranslations(mod.modInfo, mod.getAllItemTranslations(), mod.getAllLanguages(), generate_path);
         
         this.log("Generating Item Models...", version);
-        JavaItemUtils.generateModels(mod_items, mod.modInfo, generate_path);
+        JavaItemUtils.generateModels(mod.itemRegistry, mod.modInfo, generate_path);
 
         this.log("Generating Item Model Definitions...", version);
-        JavaItemUtils.generateItemModelDescription(mod_items, generate_path, mod.modInfo);
+        JavaItemUtils.generateItemModelDescription(mod.itemRegistry, generate_path, mod.modInfo);
 
         this.log("Copying Item Textures...", version);
-        JavaItemUtils.copyItemTextures(mod_items, mod.modInfo, generate_path);
+        JavaItemUtils.copyItemTextures(mod.itemRegistry, mod.modInfo, generate_path);
 
         this.log("Done. Generated Fabric mod.", version);
     }
@@ -164,7 +165,7 @@ export class FabricModGenerator extends BaseModGenerator {
         fs.ensureDirSync(assetsFolder);
     }
 
-    public static generateModItems(items: Item[], mod_info: ModInfo, output_path: string, settings?: FabricModSettings): void {
+    public static generateModItems(items: IdentifiablePlatformRegistry<Item>, mod_info: ModInfo, output_path: string, settings?: FabricModSettings): void {
 
         let mcVersion: string = settingsByVersion.latest.version;
         if (settings && settings.version) {

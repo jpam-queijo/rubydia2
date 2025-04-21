@@ -61,6 +61,10 @@ export class Identifier {
         return new this("rubydia", path);
     }
 
+    static ofMod(mod: Mod, path: string): Identifier {
+        return new this(mod.getModID(), path);
+    }
+
     static isValid(namespace: string, path: string): boolean {
         return (isValidNamespaceID(path) && isValidNamespaceID(namespace));
     }

@@ -1,29 +1,42 @@
-export interface Item {
-    name: string; // Item Display Name
-    id: string;
-    namespace?: string; // Item Identifier Namespace
+import { Identifier, type Identifiable } from "./identifier";
+import type { Translatable } from "./language";
+
+export interface ItemProperties {
+    displayName: string; // Item Display Name
     texture?: string;
-    max_stack_size?: number;
+    maxStackSize?: number;
     rarity?: Rarity;
 }
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic";
 
-/*export*/ abstract class AdvancedItem implements Item {
-    abstract name: string;
-    abstract id: string;
-    namespace?: string | undefined;
+export class Item implements ItemProperties, Identifiable, Translatable {
+    private id: Identifier;
+    private translationKey: string;
+
+    displayName: string;
     texture?: string | undefined;
-    max_stack_size?: number | undefined;
+    maxStackSize?: number | undefined;
     rarity?: Rarity | undefined;
+
+    constructor(properties: ItemProperties, id: Identifier) {
+        this.id = id;
+
+        this.displayName = properties.displayName;
+        this.texture = properties.texture;
+        this.rarity = properties.rarity;
+        this.maxStackSize = properties.maxStackSize;
+
+        this.translationKey = `rubydia.item.${this.id.getIdString()}`;
+    }
     
-    // for the future when logical coding its implemented
-}
-
-export function getItemFullID(mod_id: string, item: Item): string {
-    return `${(item.namespace) || mod_id}:${item.id}`;
-}
-
-export function getItemNamespace(mod_id: string, item: Item): string {
-    return `${(item.namespace) || mod_id}`;
+    getID(): Identifier {
+        return this.id;
+    }
+    getTranslationKey(): string {
+        return this.translationKey;
+    }
+    setTranslationKey(key: string): void {
+        this.translationKey = key;
+    }
 }

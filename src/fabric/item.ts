@@ -1,4 +1,5 @@
-import { getItemNamespace, type Item } from "../item";
+import { Item, type ItemProperties } from "../item";
+import { toCamelCaseString, toSnakeCaseString } from "../utils";
 import { settingsByVersion, type FabricModSettings } from "./modSettings";
 import { isVersionNewerThan } from "./utils";
 
@@ -8,25 +9,26 @@ export class FabricItemGenerator {
         if (version && version.version) {
             mcVersion = version.version;
         }
-        const item_var = `${getItemNamespace(mod_id, item).toUpperCase()}_${item.id.toUpperCase()}`;
+        const itemID = item.getID();
+        const item_var = toSnakeCaseString(`${itemID.getNamespace()}_${itemID.getPath()}`).toUpperCase();
         const item_settings = this.generateItemSettingsJava(item);
 
         if (isVersionNewerThan(mcVersion, "1.21.2") || mcVersion === "1.21.2") {
-            return `\tpublic static final Item ${item_var} = registerItem("${getItemNamespace(mod_id, item)}", "${item.id}", Item::new, ${item_settings});\n`;
+            return `\tpublic static final Item ${item_var} = registerItem("${itemID.getNamespace()}", "${itemID.getPath()}", Item::new, ${item_settings});\n`;
         }
 
-        return `\tpublic static final Item ${item_var} = registerItem("${getItemNamespace(mod_id, item)}", "${item.id}", new Item(${item_settings}));\n`;
+        return `\tpublic static final Item ${item_var} = registerItem("${itemID.getNamespace()}", "${itemID.getPath()}", new Item(${item_settings}));\n`;
     }
 
-    public static generateItemSettingsJava(item: Item): string {
+    public static generateItemSettingsJava(item: ItemProperties): string {
         let item_settings_modifiers: string = "";
 
         // Max Stack Size
-        if (item.max_stack_size) {
-            if (item.max_stack_size > 64 || item.max_stack_size < 1 || Number.isNaN(item.max_stack_size)) {
+        if (item.maxStackSize) {
+            if (item.maxStackSize > 64 || item.maxStackSize < 1 || Number.isNaN(item.maxStackSize)) {
                 throw new Error("Stack Size should be a number in the range: 1 <= Max Stack Size <= 64");
             }
-            item_settings_modifiers += `.maxCount(${Math.trunc(item.max_stack_size)})`;
+            item_settings_modifiers += `.maxCount(${Math.trunc(item.maxStackSize)})`;
         }
 
         // Rarity
