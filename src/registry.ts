@@ -349,11 +349,11 @@ export class IdentifiablePlatformRegistry<T extends Identifiable> extends Platfo
         super.registerShared(object, object.getID().getIdString());
     }
 
-    registerBedrock(object: T): void {
+    registerForBedrock(object: T): void {
         super.registerForBedrock(object, object.getID().getIdString());
     }
 
-    registerJava(object: T): void {
+    registerForJava(object: T): void {
         super.registerForJava(object, object.getID().getIdString());
     }
 
