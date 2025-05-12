@@ -10,4 +10,4 @@ export { Identifier } from "./src/identifier";
 export { type Registry, GenericRegistry, PlatformRegistry ,IdentifiableRegistry, IdentifiablePlatformRegistry } from "./src/registry";
 export { type MinecraftLanguage } from "./src/language";
 export { type FabricSupportedJavaVersion } from "./src/fabric/modSettings";
-export { type Translation, type Version } from "./src/mod";
+export { type Version } from "./src/mod";
