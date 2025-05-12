@@ -1,20 +1,10 @@
 import { Item } from "..";
-import { type ItemProperties } from "./item";
 import type { MinecraftLanguage } from "./language";
 import { IdentifiablePlatformRegistry } from "./registry";
+import { TranslationManager } from "./translation";
 import { toCamelCaseString, toSnakeCaseString } from "./utils";
 
 export type Version = [number, number, number];
-
-export interface ModTranslation {
-    items: Translation;
-    languages: MinecraftLanguage[];
-    keys: Translation;
-}
-
-export interface Translation {
-    [key: string]: Partial<Record<MinecraftLanguage, string>>;
-};
 
 export interface ModInfo {
     name: string;
@@ -30,38 +20,11 @@ export interface ModInfo {
 export abstract class Mod {
     abstract modInfo: ModInfo;
     
-
     // Items
-    //private items: {[key: string]: ItemProperties} = {};
-    public itemRegistry: IdentifiablePlatformRegistry<Item> = new IdentifiablePlatformRegistry<Item>();
-    private translations: ModTranslation  = {items: {}, keys: {}, languages: []};
+    public readonly itemRegistry: IdentifiablePlatformRegistry<Item> = new IdentifiablePlatformRegistry<Item>();
 
-    /*
-    public addItem(item: ItemProperties): void {
-        const mod_id = this.getModID();
-        if (this.items[getItemFullID(mod_id, item)]) throw new Error(`Item with ID:"${getItemFullID(mod_id, item)}" already exists.`);
-        this.items[getItemFullID(mod_id, item)] = item;
-
-        if (!this.getItemTranslation(item, 'en_US')) {
-            this.setItemTranslation(item, 'en_US', item.name);
-        }
-    }
-    
-
-    public getItems(): ItemProperties[] {
-        return Object.values(this.items);
-    }
-
-    public getItem(item_id: string): ItemProperties | undefined {
-        return this.items[item_id];
-    }
-
-    public removeItem(item_id: string): void {
-        delete this.items[item_id];
-    }
-    */
-
-
+    // Translation
+    public readonly translationManager: TranslationManager = new TranslationManager();
 
     public getModID(): string {
         return process.env.MODID || toSnakeCaseString(this.modInfo.modid || this.modInfo.name);
@@ -69,84 +32,5 @@ export abstract class Mod {
 
     public getModClassName() {
         return toCamelCaseString(process.env.CLASS_NAME || toCamelCaseString(this.modInfo.modid || this.modInfo.name));
-    }
-
-    private addLanguageToTranslations(language: MinecraftLanguage): void {
-        if (!this.translations.languages.includes(language)) {
-            this.translations.languages.push(language);
-        }
-    }
-
-    /*
-    public setItemTranslation(item: ItemProperties, language: MinecraftLanguage, translation: string): void {
-        this.addLanguageToTranslations(language);
-        const itemID = getItemFullID(this.getModID(), item);
-        if (!this.translations.items[itemID]) {
-            this.translations.items[itemID] = {};
-        }
-
-        this.translations.items[itemID][language] = translation;
-    }
-    */
-
-    public setKeyTranslation(key: string, language: MinecraftLanguage, translation: string): void {
-        this.addLanguageToTranslations(language);
-
-        if (!this.translations.keys[key]) {
-            this.translations.keys[key] = {};
-        }
-        this.translations.keys[key][language] = translation;
-    }
-
-    /*
-    public removeItemTranslation(item: ItemProperties, language: MinecraftLanguage): void {
-        delete this.translations.items[getItemFullID(this.getModID(), item)][language];
-    }
-    */
-
-    public removeKeyTranslation(key: string, language: MinecraftLanguage): void {
-        delete this.translations.keys[key][language];
-    }
-
-/*     public getAllTranslationsForItem(item: ItemProperties): Partial<Record<MinecraftLanguage, string>> {
-        return this.translations.items[getItemFullID(this.getModID(), item)];
-    } */
-
-    public getAllTranslationsForKey(key: string): Partial<Record<MinecraftLanguage, string>> {
-        return this.translations.keys[key];
-    }
-
-/*     public getItemTranslation(item: ItemProperties, language: MinecraftLanguage): string | undefined {
-        const itemID = getItemFullID(this.getModID(), item);
-
-        if (!this.translations.items[itemID]) {
-            this.translations.items[itemID] = {};
-        }
-
-        return this.translations.items[itemID][language];
-    } */
-
-    public getKeyTranslation(key: string, language: MinecraftLanguage): string | undefined {
-        if (!this.translations.keys[key]) {
-            this.translations.keys[key] = {};
-        }
-
-        return this.translations.keys[key][language];
-    }
-
-    public getAllLanguages(): MinecraftLanguage[] {
-        return this.translations.languages;
-    }
-
-    public getAllItemTranslations(): Translation {
-        return this.translations.items;
-    }
-
-    public getAllKeyTranslations(): Translation {
-        return this.translations.keys;
-    }
-
-    public getAllModTranslations(): ModTranslation {
-        return this.translations;
     }
 }

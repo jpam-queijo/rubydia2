@@ -1,37 +1,42 @@
+import { Item } from "../item";
 import type { MinecraftLanguage } from "../language";
-import type { Translation } from "../mod";
+import { IdentifiablePlatformRegistry } from "../registry";
+import { TranslationManager } from "../translation";
 
 export class BedrockTranslationGenerator {
-    public static generateItemTranslations(item_translations: Translation, language: MinecraftLanguage) {
+    public static generateTranslations(language: MinecraftLanguage, translationManager: TranslationManager): string {
 
-        let translation_file: string = "";
+        let translationFile: string = "";
 
-        Object.entries(item_translations).forEach(([item_id, translations]) => {
-            for (const [tr_language, translation] of Object.entries(translations)) {
-                if (!(translation && tr_language === language)) continue;
-
-                let new_translation: string = translation;
-                if (translation === undefined) new_translation = "";
-
-                translation_file += `item.${item_id}=${new_translation}\n`;
-            }
+        translationManager.forEachKey(language, (translation, key) => {
+            translationFile += `${key}=${translation}\n`;
         });
 
-        return translation_file;
+        return translationFile;
     }
 
-    public static generateKeyTranslations(key_translations: Translation, language: MinecraftLanguage) {
+    public static generateRubydiaKeyTranslations(language: MinecraftLanguage, translationManager: TranslationManager, modID: string): string {
 
-        let translation_file: string = "";
+        let translationFile: string = "";
 
-        Object.entries(key_translations).forEach(([key, translations]) => {
-            for (const [tr_language, translation] of Object.entries(translations)) {
-                if (!(translation && tr_language === language)) continue;
-
-                translation_file += `${key}=${translation}\n`;
-            }
+        translationManager.forEachKey(language, (translation, key) => {
+            translationFile += `rubydia.mod.${modID}.${key}=${translation}\n`;
         });
 
-        return translation_file;
+        return translationFile;
+    }
+
+    public static generateRubydiaItemTranslations(translationManager: TranslationManager, itemRegistry: IdentifiablePlatformRegistry<Item>): TranslationManager {
+        let bedrockTranslations = new TranslationManager();
+        
+        itemRegistry.forEachInBedrock((item) => {
+            const itemID = item.getID();
+            const itemTranslationKey = item.getTranslationKey();
+            
+            bedrockTranslations.setTranslationFor('en_US', `item.${itemID.getIdString()}`, item.displayName);
+            bedrockTranslations.setTranslationsFromMap(`item.${itemID.getIdString()}`, translationManager.getAllTranslationsFor(itemTranslationKey));
+        });
+
+        return bedrockTranslations;
     }
 }

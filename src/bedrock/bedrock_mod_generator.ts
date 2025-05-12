@@ -1,5 +1,5 @@
 import { BaseModGenerator } from "../mod_generator";
-import { Mod, type ModInfo, type ModTranslation } from "../mod";
+import { Mod, type ModInfo } from "../mod";
 import { type BedrockManifest, type BedrockUUIDs } from "./bedrock_manifest";
 import { generateOrGetUUIDs, modInfoToManifest } from "./bedrock_utils";
 import fs from "fs-extra";
@@ -7,13 +7,14 @@ import path from "path";
 import os from "os";
 import open from "open";
 import archiver from "archiver";
-import type { Item, ItemProperties } from "../item";
+import type { Item } from "../item";
 import { BedrockItemGenerator, defaultItemIcon } from "./bedrock_item";
 import { BedrockTranslationGenerator } from "./translation_generator";
 import type { MinecraftLanguage } from "../language";
 import { ModUtils } from "../java/modUtils";
 import util from "node:util";
 import type { IdentifiablePlatformRegistry } from "../registry";
+import { TranslationManager } from "../translation";
 
 const rubydia2Folder = path.join(import.meta.dirname, "..", "..");
 
@@ -131,13 +132,13 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(generate_path); // Ensuring that Resource Pack folder exists
 
         this.log("Generating manifest.json and adding Addon Icon.");
-        this.generateBasePack(mod.modInfo, generate_path, 'resource_pack', mod.getAllLanguages(), uuids);
+        this.generateBasePack(mod.modInfo, generate_path, 'resource_pack', uuids);
 
         this.log("Generating Item Resources.");
         this.generateItemsResources(mod.modInfo, mod.itemRegistry, generate_path);
 
         this.log("Generating Translations.");
-        this.generateTranslations(mod.modInfo, 'resource_pack', mod.getAllModTranslations(), generate_path);
+        this.generateTranslations(mod, 'resource_pack', mod.translationManager, generate_path);
 
     }
 
@@ -151,16 +152,16 @@ export class BedrockModGenerator extends BaseModGenerator {
         fs.ensureDirSync(generate_path);
 
         this.log("Generating manifest.json and adding Addon Icon.");
-        this.generateBasePack(mod.modInfo, generate_path, 'behavior_pack', mod.getAllLanguages(), uuids);
+        this.generateBasePack(mod.modInfo, generate_path, 'behavior_pack', uuids);
 
         this.log("Generating Item Behaviors.");
         this.generateItemsBehavior(mod.itemRegistry, mod.getModID(), generate_path);
         this.log("Generating Translations.");
-        this.generateTranslations(mod.modInfo, 'behavior_pack', mod.getAllModTranslations(), generate_path);
+        this.generateTranslations(mod, 'behavior_pack', mod.translationManager, generate_path);
 
     }
 
-    public static generateBasePack(mod_info: ModInfo, gen_path: string, pack_type: PackType, languages: MinecraftLanguage[], uuids: BedrockUUIDs): void {
+    public static generateBasePack(mod_info: ModInfo, gen_path: string, pack_type: PackType, uuids: BedrockUUIDs): void {
         const modManifest: BedrockManifest = modInfoToManifest(mod_info, uuids[pack_type],
             pack_type === 'behavior_pack' ?  'data' : 'resources');
         
@@ -193,33 +194,38 @@ export class BedrockModGenerator extends BaseModGenerator {
         );
     }
 
-    public static generateTranslations(mod_info: ModInfo, pack_type: PackType, mod_translations: ModTranslation, generate_path: string) {
-
-        fs.ensureDirSync(path.join(generate_path, "texts"));
-
-        if (!mod_translations.languages.includes('en_US')) {
-            mod_translations.languages.push.apply(mod_translations.languages, ['en_US']);
-        }
+    public static generateTranslations(mod: Mod, packType: PackType, translationManager: TranslationManager, generatePath: string) {
+        let modUsedLanguages: MinecraftLanguage[] = ['en_US'];
         
-        fs.writeJSONSync(path.join(generate_path, "texts", "languages.json"), mod_translations.languages);
+        const itemTranslations = BedrockTranslationGenerator.generateRubydiaItemTranslations(translationManager, mod.itemRegistry);
+        
+        const textsFolder = path.join(generatePath, "texts");
+        const enUSTranslationPath = path.join(textsFolder, "en_US.lang");
 
-        for (const language of mod_translations.languages) {
-            let translation_file_contents = '';
+        fs.ensureDirSync(textsFolder);
+        
+        let enUSTranslationFileContents = 
+        `pack.name=${mod.modInfo.name} [${packType === 'resource_pack' ? 'RP' : 'BP'}]\npack.description=${mod.modInfo.description}\n`;
 
-            if (language === 'en_US') {
-                translation_file_contents += `pack.name=${mod_info.name} [${pack_type === 'resource_pack' ? 'RP' : 'BP'}]\npack.description=${mod_info.description}\n`;
+        fs.writeFileSync(enUSTranslationPath, enUSTranslationFileContents);
+
+        fs.appendFileSync(enUSTranslationPath, BedrockTranslationGenerator.generateTranslations("en_US", itemTranslations));
+
+        for (const language of translationManager.languages()) {
+            if (!modUsedLanguages.includes(language)) {
+                modUsedLanguages.push(language);
             }
 
-            if (pack_type == 'resource_pack') {
-                translation_file_contents += BedrockTranslationGenerator.generateItemTranslations(mod_translations.items, language);
-                translation_file_contents += BedrockTranslationGenerator.generateKeyTranslations(mod_translations.keys, language);
-            }
+            fs.appendFileSync(path.join(textsFolder, `${language}.lang`),
+                BedrockTranslationGenerator.generateRubydiaKeyTranslations(language, translationManager, mod.getModID()));
 
-            fs.writeFileSync(
-                path.join(generate_path, "texts", `${language}.lang`), 
-                translation_file_contents
-            );
+            if (language !== 'en_US') {
+                fs.appendFileSync(path.join(textsFolder, `${language}.lang`), BedrockTranslationGenerator.generateTranslations(language, itemTranslations));
+            }
         }
+
+        fs.writeJSONSync(textsFolder, modUsedLanguages);
+
     }
 
     public static generateItemsBehavior(items: IdentifiablePlatformRegistry<Item>, mod_id: string, generate_path: string): void {

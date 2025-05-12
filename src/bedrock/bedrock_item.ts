@@ -1,6 +1,7 @@
-import { Item, type ItemProperties } from "../item";
+import { Item } from "../item";
 import path from "path";
 import type { IdentifiablePlatformRegistry } from "../registry";
+import { TranslationManager } from "../translation";
 
 
 export const defaultItemIcon: string = path.join(import.meta.dirname, "..", "..", "assets", "queijo.png");

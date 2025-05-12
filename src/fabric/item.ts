@@ -1,5 +1,5 @@
 import { Item, type ItemProperties } from "../item";
-import { toCamelCaseString, toSnakeCaseString } from "../utils";
+import { toSnakeCaseString } from "../utils";
 import { settingsByVersion, type FabricModSettings } from "./modSettings";
 import { isVersionNewerThan } from "./utils";
 

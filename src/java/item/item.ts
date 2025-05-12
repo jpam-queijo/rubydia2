@@ -1,4 +1,4 @@
-import { Item, type ItemProperties } from "../../item";
+import { Item } from "../../item";
 import type { ModInfo } from "../../mod";
 import { ModUtils } from "../modUtils";
 import path from "path";
@@ -55,8 +55,6 @@ export class JavaItemUtils {
     }
 
     public static generateItemModelDescription(items: IdentifiablePlatformRegistry<Item>, generate_path: string, mod_info: ModInfo) {
-        
-        const mod_id = ModUtils.getModID(mod_info);
 
         items.forEachInJava((item: Item) => {
             const itemID = item.getID();

@@ -8,7 +8,7 @@ import type { Item } from "../item";
 import { isVersionNewerThan } from "./utils";
 import { ModUtils } from "../java/modUtils";
 import { JavaItemUtils } from "../java/item/item";
-import { TranslationGenerator } from "../java/translationGenerator";
+import { JavaTranslationGenerator } from "../java/translationGenerator";
 import { GradleUtilities } from "./gradle";
 import { FabricModUtils } from "./ModUtils";
 import util from "node:util";
@@ -61,6 +61,8 @@ export class FabricModGenerator extends BaseModGenerator {
         // checking if mod has items if not then it don't need the item implementation code
         mod_java_file = mod_java_file.replaceAll("${IF_RUBYDIA2_MOD_ITEMS}", ((mod.itemRegistry.sharedSize + mod.itemRegistry.javaSpecificSize) <= 0 ? "//" : ""));
 
+        const langFolderPath = path.join(ModUtils.getAssetsFolderLocation(generate_path, mod_id), "lang");
+
         // writing mod entrypoint file
         fs.writeFileSync(path.join(java_package, `${ModUtils.getModClassName(mod.modInfo)}.java`), mod_java_file);
 
@@ -85,12 +87,23 @@ export class FabricModGenerator extends BaseModGenerator {
         if ((mod.itemRegistry.sharedSize + mod.itemRegistry.javaSpecificSize) > 0) {
             this.log("Generating Items code...", version);
             this.generateModItems(mod.itemRegistry, mod.modInfo, generate_path, mod_fabric_settings);
+
+            const itemTranslations = JavaTranslationGenerator.generateRubydiaItemTranslations(mod.translationManager, mod.itemRegistry);
+
+            const translations = JavaTranslationGenerator.generateTranslations('en_US', itemTranslations);
+            fs.writeJSONSync(path.join(langFolderPath, 'en_us.json'), Object.fromEntries(translations.entries()));
         } else {
             this.log("No Items in to generate skipping Items generation...", version);
         }
 
         this.log("Generating translations...", version);
-        TranslationGenerator.generateAllTranslations(mod.modInfo, mod.getAllItemTranslations(), mod.getAllLanguages(), generate_path);
+        //JavaTranslationGenerator.generateAllTranslations(mod.modInfo, mod.getAllItemTranslations(), mod.getAllLanguages(), generate_path);
+
+        for (const language of mod.translationManager.languages()) {
+            fs.ensureDirSync(langFolderPath);
+
+            fs.writeJsonSync(path.join(langFolderPath, `${language.toLocaleLowerCase()}.json`), JavaTranslationGenerator.generateRubydiaKeyTranslations(language, mod.translationManager, mod_id));
+        }
         
         this.log("Generating Item Models...", version);
         JavaItemUtils.generateModels(mod.itemRegistry, mod.modInfo, generate_path);

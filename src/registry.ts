@@ -14,7 +14,7 @@ export interface Registry<T> {
 }
 
 export class GenericRegistry<T> implements Registry<T> {
-    private storage: Map<string, T> = new Map<string, T>();
+    private readonly storage: Map<string, T> = new Map<string, T>();
     
     register(object: T, id: string): void {
         if (this.has(id)) {
@@ -68,9 +68,9 @@ export class GenericRegistry<T> implements Registry<T> {
 export class PlatformRegistry<T> {
 
     // Registries
-    private sharedStorage: Registry<T>;
-    private bedrockStorage: Registry<T>;
-    private javaStorage: Registry<T>;
+    private readonly sharedStorage: Registry<T>;
+    private readonly bedrockStorage: Registry<T>;
+    private readonly javaStorage: Registry<T>;
 
     constructor(sharedRegistry: Registry<T> = new GenericRegistry<T>(),
          bedrockRegistry: Registry<T> = new GenericRegistry<T>(),
